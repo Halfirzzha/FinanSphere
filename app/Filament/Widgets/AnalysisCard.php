@@ -7,6 +7,7 @@ use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use App\Models\Transaction;
+use App\Models\Debt;
 
 class AnalysisCard extends BaseWidget
 {
@@ -25,10 +26,14 @@ class AnalysisCard extends BaseWidget
         $expenses = $this->calculateTransactionSum(Transaction::expenses(), $startDate, $endDate);
         $difference = $revenue - $expenses;
 
+        // Remaining debt (total debt - total paid)
+        $remainingDebt = Debt::sum('amount') - Debt::sum('amount_paid');
+
         return [
             $this->createStat('Total Revenue', $revenue, 'heroicon-m-banknotes'),
             $this->createStat('Total Expenses', $expenses, 'heroicon-m-receipt-refund'),
             $this->createStat('Money Difference', $difference, 'heroicon-o-arrows-up-down'),
+            $this->createStat('Remaining Debt', $remainingDebt, 'heroicon-o-exclamation-circle'),
         ];
     }
 
