@@ -25,6 +25,13 @@ class CategoryResource extends Resource
     protected static ?string $model = Category::class;
     protected static ?string $navigationGroup = 'Finance Management'; // Group name
     protected static ?string $navigationIcon = 'heroicon-o-folder';
+    
+    /**
+     * Define form fields for category creation and editing
+     * 
+     * @param Forms\Form $form
+     * @return Forms\Form
+     */
     public static function form(Forms\Form $form): Forms\Form
     {
         return $form->schema([
@@ -38,6 +45,7 @@ class CategoryResource extends Resource
                     TextInput::make('name')
                         ->required()
                         ->maxLength(255)
+                        ->helperText('Enter a descriptive name for this category')
                         ->columnSpan([
                             'sm' => 1,
                             'xl' => 2,
@@ -52,34 +60,54 @@ class CategoryResource extends Resource
                         ->offColor('success')
                         ->columnSpan([
                             'sm' => 1,
-                            'xl' => 1,
-                            '2xl' => 1,
+                            'xl' => 2,
+                            '2xl' => 2,
                         ])
-                        ->inline(false),
+                        ->inline(false)
+                        ->helperText('Toggle ON for expense categories, OFF for income categories'),
                     FileUpload::make('image')
                         ->image()
                         ->directory('images-categories')
+                        ->maxSize(1024) // 1MB limit
+                        ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/webp'])
+                        ->imageResizeMode('cover')
+                        ->imageCropAspectRatio('1:1')
+                        ->imageResizeTargetWidth('200')
+                        ->imageResizeTargetHeight('200')
+                        ->helperText('Square image recommended (will be resized to 200x200)')
                         ->columnSpanFull(),
                 ]),
         ]);
     }
 
+    /**
+     * Define table columns, filters, and actions
+     * 
+     * @param Table $table
+     * @return Table
+     */
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
                 ImageColumn::make('image')
-                    ->label('PHOTO'),
+                    ->label('Icon')
+                    ->circular(),
                 TextColumn::make('name')
-                    ->label('Name of the category')
-                    ->searchable(),
+                    ->label('Category Name')
+                    ->searchable()
+                    ->sortable(),
                 IconColumn::make('is_expense')
-                    ->label('Active')
+                    ->label('Type')
                     ->boolean()
                     ->trueIcon('heroicon-m-receipt-refund')
                     ->falseIcon('heroicon-m-banknotes')
                     ->trueColor('danger')
-                    ->falseColor('success'),
+                    ->falseColor('success')
+                    ->sortable()
+                    ->tooltip(fn (Category $record): string => 
+                        $record->is_expense ? 'Expense Category' : 'Income Category'
+                    ),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -90,7 +118,28 @@ class CategoryResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                // Add filters here if needed
+                Tables\Filters\SelectFilter::make('is_expense')
+                    ->label('Category Type')
+                    ->options([
+                        '1' => 'Expense Categories',
+                        '0' => 'Income Categories',
+                    ]),
+                Tables\Filters\Filter::make('created_at')
+                    ->form([
+                        Forms\Components\DatePicker::make('created_from'),
+                        Forms\Components\DatePicker::make('created_until'),
+                    ])
+                    ->query(function (Tables\Filters\Filter $filter, $query) {
+                        return $query
+                            ->when(
+                                $filter->getState()['created_from'],
+                                fn ($query, $date) => $query->whereDate('created_at', '>=', $date)
+                            )
+                            ->when(
+                                $filter->getState()['created_until'],
+                                fn ($query, $date) => $query->whereDate('created_at', '<=', $date)
+                            );
+                    })
             ])
             ->actions([
                 EditAction::make()
