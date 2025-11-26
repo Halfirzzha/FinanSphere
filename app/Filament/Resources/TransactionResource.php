@@ -26,23 +26,19 @@ class TransactionResource extends Resource
     protected static ?string $model = Transaction::class;
     protected static ?string $navigationGroup = 'Finance Management';
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
-    
+
     /**
      * Define form fields for transaction creation and editing
-     * 
+     *
      * @param Forms\Form $form
      * @return Forms\Form
      */
     public static function form(Forms\Form $form): Forms\Form
     {
         return $form->schema([
-            Section::make('Transaction Details')
-                ->description('Record financial transaction details')
-                ->columns([
-                    'sm' => 3,
-                    'xl' => 6,
-                    '2xl' => 8,
-                ])
+            Section::make('Transaction Identification')
+                ->description('Unique identifier and description')
+                ->icon('heroicon-o-identification')
                 ->schema([
                     TextInput::make('code')
                         ->label('Transaction Code')
@@ -50,27 +46,30 @@ class TransactionResource extends Resource
                         ->default(function (): string {
                             $millis = round(microtime(true) * 1000);
                             $uniqueId = base_convert(substr($millis, -6) . rand(100, 999), 10, 36);
-                            return "FNTX - " . strtoupper($uniqueId);
+                            return "FNTX-" . strtoupper($uniqueId);
                         })
                         ->readOnly()
                         ->maxLength(50)
                         ->unique(ignorable: fn ($record) => $record)
-                        ->helperText('Unique transaction identifier')
-                        ->columnSpan([
-                            'sm' => 1,
-                            'xl' => 1,
-                            '2xl' => 2,
-                        ]),
+                        ->helperText('Auto-generated unique code')
+                        ->prefixIcon('heroicon-o-hashtag')
+                        ->columnSpan(1),
+
                     TextInput::make('name')
                         ->label('Description')
                         ->required()
                         ->maxLength(255)
-                        ->helperText('Brief description of this transaction')
-                        ->columnSpan([
-                            'sm' => 2,
-                            'xl' => 3,
-                            '2xl' => 4,
-                        ]),
+                        ->placeholder('e.g., Monthly Grocery Shopping')
+                        ->helperText('Brief transaction description')
+                        ->prefixIcon('heroicon-o-document-text')
+                        ->columnSpan(2),
+                ])
+                ->columns(3),
+
+            Section::make('Transaction Details')
+                ->description('Category, date, and payment information')
+                ->icon('heroicon-o-clipboard-document-list')
+                ->schema([
                     Select::make('category_id')
                         ->label('Category')
                         ->relationship('category', 'name')
@@ -81,67 +80,95 @@ class TransactionResource extends Resource
                                 ->orderByRaw("FIELD(is_expense, 0, 1)")
                                 ->get()
                                 ->mapWithKeys(function ($category) {
-                                    $type = $category->is_expense ? '(Expense)' : '(Income)';
-                                    return [$category->id => "$category->name $type"];
+                                    $type = $category->is_expense ? '💸 Expense' : '💰 Income';
+                                    return [$category->id => "$category->name ($type)"];
                                 });
                         })
                         ->required()
-                        ->helperText('Select transaction category')
-                        ->columnSpan([
-                            'sm' => 1,
-                            'xl' => 1,
-                            '2xl' => 1,
-                        ]),
+                        ->helperText('Select income or expense category')
+                        ->prefixIcon('heroicon-o-folder')
+                        ->columnSpan(2),
+
                     DatePicker::make('date_transaction')
                         ->label('Transaction Date')
                         ->required()
                         ->default(now())
-                        ->helperText('When the transaction occurred')
+                        ->native(false)
+                        ->displayFormat('d/m/Y')
+                        ->maxDate(now())
+                        ->helperText('When this transaction occurred')
+                        ->prefixIcon('heroicon-o-calendar')
                         ->columnSpan(1),
+
                     Select::make('payment_method')
                         ->label('Payment Method')
                         ->required()
                         ->options([
-                            'cash' => 'Cash',
-                            'credit_card' => 'Credit Card',
-                            'bank_transfer' => 'Bank Transfer',
-                            'digital_wallet' => 'Digital Wallet',
+                            'cash' => '💵 Cash',
+                            'credit_card' => '💳 Credit Card',
+                            'bank_transfer' => '🏦 Bank Transfer',
+                            'digital_wallet' => '📱 Digital Wallet',
                         ])
-                        ->helperText('Method used for this transaction')
+                        ->helperText('How this was paid')
+                        ->prefixIcon('heroicon-o-credit-card')
                         ->columnSpan(1),
+                ])
+                ->columns(3),
+
+            Section::make('Amount')
+                ->description('Transaction value in IDR')
+                ->icon('heroicon-o-banknotes')
+                ->schema([
                     TextInput::make('amount')
-                        ->label('Amount')
+                        ->label('Transaction Amount')
                         ->required()
-                        ->prefix('Rp')
                         ->numeric()
-                        ->minValue(0)
+                        ->minValue(1)
+                        ->maxValue(999999999999)
                         ->step(1)
-                        ->helperText('Transaction amount (in IDR)')
-                        ->columnSpan(2),
+                        ->inputMode('numeric')
+                        ->prefix('Rp')
+                        ->placeholder('50000')
+                        ->helperText('Enter amount in Rupiah (numbers only)')
+                        ->columnSpanFull(),
+                ])
+                ->columns(1),
+
+            Section::make('Additional Information')
+                ->description('Notes and attachments (optional)')
+                ->icon('heroicon-o-paper-clip')
+                ->schema([
                     RichEditor::make('note')
-                        ->label('Notes')
+                        ->label('Transaction Notes')
                         ->maxLength(500)
-                        ->helperText('Additional details about this transaction (max 500 chars)')
+                        ->placeholder('Add any additional details...')
+                        ->helperText('Optional notes about this transaction (max 500 characters)')
                         ->toolbarButtons([
-                            'bold', 'italic', 'underline', 'bulletList', 
+                            'bold', 'italic', 'underline', 'bulletList',
                             'orderedList', 'redo', 'undo'
                         ])
                         ->columnSpanFull(),
+
                     FileUpload::make('image')
                         ->label('Receipt/Proof')
                         ->image()
+                        ->imageEditor()
                         ->directory('transaction-receipts')
-                        ->maxSize(2048) // 2MB limit
-                        ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/jpg', 'application/pdf'])
-                        ->helperText('Upload transaction receipt or proof (max 2MB)')
+                        ->visibility('public')
+                        ->maxSize(2048)
+                        ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/jpg', 'image/webp'])
+                        ->helperText('Upload receipt or proof (Max 2MB, JPG/PNG/WebP)')
+                        ->imagePreviewHeight(200)
                         ->columnSpanFull(),
-                ]),
+                ])
+                ->collapsible()
+                ->collapsed(),
         ]);
     }
 
     /**
      * Define table columns, filters, and actions
-     * 
+     *
      * @param Table $table
      * @return Table
      */
@@ -166,8 +193,8 @@ class TransactionResource extends Resource
             ImageColumn::make('category.image')
                 ->label('Category')
                 ->circular()
-                ->defaultImageUrl(fn (Transaction $record) => 
-                    $record->category->is_expense 
+                ->defaultImageUrl(fn (Transaction $record) =>
+                    $record->category->is_expense
                         ? asset('images/expense-default.png')
                         : asset('images/income-default.png')
                 ),
@@ -183,7 +210,7 @@ class TransactionResource extends Resource
                 ->trueColor('danger')
                 ->falseColor('success')
                 ->boolean()
-                ->tooltip(fn (Transaction $record): string => 
+                ->tooltip(fn (Transaction $record): string =>
                     $record->category->is_expense ? 'Expense' : 'Income'
                 ),
             TextColumn::make('date_transaction')
@@ -206,7 +233,7 @@ class TransactionResource extends Resource
                 ->money('IDR')
                 ->sortable()
                 ->alignRight()
-                ->color(fn (Transaction $record): string => 
+                ->color(fn (Transaction $record): string =>
                     $record->category->is_expense ? 'danger' : 'success'
                 ),
             TextColumn::make('note')
@@ -255,11 +282,11 @@ class TransactionResource extends Resource
                 ])
                 ->query(function (Builder $query, array $data): Builder {
                     return $query->when($data['value'] === 'income', function (Builder $query) {
-                        return $query->whereHas('category', fn (Builder $query) => 
+                        return $query->whereHas('category', fn (Builder $query) =>
                             $query->where('is_expense', false)
                         );
                     })->when($data['value'] === 'expense', function (Builder $query) {
-                        return $query->whereHas('category', fn (Builder $query) => 
+                        return $query->whereHas('category', fn (Builder $query) =>
                             $query->where('is_expense', true)
                         );
                     });
@@ -279,13 +306,13 @@ class TransactionResource extends Resource
                 ->query(function (Builder $query, array $data): Builder {
                     return $query
                         ->when(
-                            $data['from'], 
-                            fn (Builder $query, $date): Builder => 
+                            $data['from'],
+                            fn (Builder $query, $date): Builder =>
                                 $query->whereDate('date_transaction', '>=', $date)
                         )
                         ->when(
-                            $data['until'], 
-                            fn (Builder $query, $date): Builder => 
+                            $data['until'],
+                            fn (Builder $query, $date): Builder =>
                                 $query->whereDate('date_transaction', '<=', $date)
                         );
                 }),

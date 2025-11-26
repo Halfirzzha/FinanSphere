@@ -25,56 +25,62 @@ class CategoryResource extends Resource
     protected static ?string $model = Category::class;
     protected static ?string $navigationGroup = 'Finance Management'; // Group name
     protected static ?string $navigationIcon = 'heroicon-o-folder';
-    
+
     /**
      * Define form fields for category creation and editing
-     * 
+     *
      * @param Forms\Form $form
      * @return Forms\Form
      */
     public static function form(Forms\Form $form): Forms\Form
     {
         return $form->schema([
-            Section::make()
-                ->columns([
-                    'sm' => 3,
-                    'xl' => 6,
-                    '2xl' => 8,
-                ])
+            Section::make('Category Information')
+                ->description('Define category name and type')
+                ->icon('heroicon-o-tag')
                 ->schema([
                     TextInput::make('name')
                         ->required()
+                        ->unique(ignoreRecord: true)
                         ->maxLength(255)
-                        ->helperText('Enter a descriptive name for this category')
-                        ->columnSpan([
-                            'sm' => 1,
-                            'xl' => 2,
-                            '2xl' => 2,
-                        ]),
+                        ->placeholder('e.g., Food & Beverage, Salary, Entertainment')
+                        ->helperText('Descriptive name for this category')
+                        ->prefixIcon('heroicon-o-bookmark')
+                        ->columnSpan(2),
+
                     Toggle::make('is_expense')
-                        ->label('Active')
+                        ->label('Expense Category')
                         ->required()
-                        ->onIcon('heroicon-m-receipt-refund')
-                        ->offIcon('heroicon-m-banknotes')
+                        ->default(true)
+                        ->onIcon('heroicon-m-minus-circle')
+                        ->offIcon('heroicon-m-plus-circle')
                         ->onColor('danger')
                         ->offColor('success')
-                        ->columnSpan([
-                            'sm' => 1,
-                            'xl' => 2,
-                            '2xl' => 2,
-                        ])
                         ->inline(false)
-                        ->helperText('Toggle ON for expense categories, OFF for income categories'),
+                        ->helperText('Toggle ON for expenses, OFF for income')
+                        ->columnSpan(1),
+                ])
+                ->columns(3),
+
+            Section::make('Category Icon')
+                ->description('Upload a visual icon for this category')
+                ->icon('heroicon-o-photo')
+                ->schema([
                     FileUpload::make('image')
+                        ->label('Category Icon')
                         ->image()
-                        ->directory('images-categories')
-                        ->maxSize(1024) // 1MB limit
-                        ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/webp'])
+                        ->imageEditor()
+                        ->imageEditorAspectRatios(['1:1'])
                         ->imageResizeMode('cover')
                         ->imageCropAspectRatio('1:1')
-                        ->imageResizeTargetWidth('200')
-                        ->imageResizeTargetHeight('200')
-                        ->helperText('Square image recommended (will be resized to 200x200)')
+                        ->imageResizeTargetWidth(200)
+                        ->imageResizeTargetHeight(200)
+                        ->directory('categories')
+                        ->visibility('public')
+                        ->maxSize(1024)
+                        ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/webp'])
+                        ->helperText('Square icon recommended. Will be resized to 200x200px (Max 1MB)')
+                        ->imagePreviewHeight(150)
                         ->columnSpanFull(),
                 ]),
         ]);
@@ -82,7 +88,7 @@ class CategoryResource extends Resource
 
     /**
      * Define table columns, filters, and actions
-     * 
+     *
      * @param Table $table
      * @return Table
      */
@@ -105,7 +111,7 @@ class CategoryResource extends Resource
                     ->trueColor('danger')
                     ->falseColor('success')
                     ->sortable()
-                    ->tooltip(fn (Category $record): string => 
+                    ->tooltip(fn (Category $record): string =>
                         $record->is_expense ? 'Expense Category' : 'Income Category'
                     ),
                 TextColumn::make('created_at')

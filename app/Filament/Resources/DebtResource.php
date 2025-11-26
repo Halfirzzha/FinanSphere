@@ -20,122 +20,129 @@ class DebtResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-credit-card';
     protected static ?string $navigationGroup = 'Finance Management'; // Group name
     protected static ?string $navigationLabel = 'Payables & Loans'; // Navigation label
-    
+
     protected static ?int $navigationSort = 2;
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Section::make('Informasi Utama')
-                    ->description('Informasi dasar tentang hutang/pinjaman')
+                Section::make('Debt Information')
+                    ->description('Basic information about this payable or loan')
+                    ->icon('heroicon-o-document-text')
                     ->schema([
                         Forms\Components\TextInput::make('name')
-                            ->label('Nama Hutang')
+                            ->label('Debt Name')
                             ->required()
-                            ->placeholder('Contoh: Pinjaman Bank BCA')
+                            ->placeholder('e.g., Bank BCA Business Loan')
                             ->maxLength(100)
-                            ->columnSpan([
-                                'sm' => 2,
-                                'xl' => 2,
-                            ]),
+                            ->helperText('Descriptive name for this debt')
+                            ->prefixIcon('heroicon-o-identification')
+                            ->columnSpanFull(),
                     ])
-                    ->columns([
-                        'sm' => 2,
-                        'xl' => 2,
-                    ]),
-                    
-                Section::make('Detail Keuangan')
-                    ->description('Informasi jumlah dan pembayaran')
+                    ->columns(1),
+
+                Section::make('Financial Details')
+                    ->description('Amounts, interest, and payment tracking')
+                    ->icon('heroicon-o-banknotes')
                     ->schema([
                         Forms\Components\TextInput::make('amount')
-                            ->label('Total Hutang')
+                            ->label('Total Debt Amount')
                             ->required()
                             ->numeric()
+                            ->minValue(1)
+                            ->maxValue(999999999999)
+                            ->step(1)
+                            ->inputMode('numeric')
                             ->prefix('Rp')
-                            ->columnSpan([
-                                'sm' => 1,
-                                'xl' => 1, 
-                            ]),
-                            
+                            ->placeholder('10000000')
+                            ->helperText('Original debt amount (numbers only)')
+                            ->columnSpan(1),
+
                         Forms\Components\TextInput::make('amount_paid')
-                            ->label('Sudah Dibayar')
+                            ->label('Amount Paid')
                             ->required()
                             ->numeric()
-                            ->default(0.00)
+                            ->minValue(0)
+                            ->maxValue(999999999999)
+                            ->step(1)
+                            ->inputMode('numeric')
+                            ->default(0)
                             ->prefix('Rp')
-                            ->columnSpan([
-                                'sm' => 1,
-                                'xl' => 1,
-                            ]),
-                            
+                            ->placeholder('2000000')
+                            ->helperText('Total already paid (numbers only)')
+                            ->columnSpan(1),
+
                         Forms\Components\TextInput::make('interest_rate')
-                            ->label('Suku Bunga (%)')
+                            ->label('Interest Rate')
                             ->numeric()
+                            ->minValue(0)
+                            ->maxValue(100)
+                            ->step(0.01)
+                            ->inputMode('decimal')
                             ->suffix('%')
-                            ->placeholder('0.00')
-                            ->columnSpan([
-                                'sm' => 1,
-                                'xl' => 1,
-                            ]),
+                            ->placeholder('5.5')
+                            ->helperText('Annual interest rate (optional)')
+                            ->columnSpan(1),
                     ])
-                    ->columns([
-                        'sm' => 1,
-                        'xl' => 3,
-                    ]),
-                    
-                Section::make('Tanggal')
-                    ->description('Informasi waktu terkait hutang/pinjaman')
+                    ->columns(3),
+
+                Section::make('Timeline')
+                    ->description('Start date and maturity date')
+                    ->icon('heroicon-o-calendar')
                     ->schema([
                         Forms\Components\DatePicker::make('start_date')
-                            ->label('Tanggal Mulai')
+                            ->label('Start Date')
                             ->required()
                             ->default(now())
-                            ->columnSpan([
-                                'sm' => 1,
-                                'xl' => 1,
-                            ]),
-                            
+                            ->native(false)
+                            ->displayFormat('d/m/Y')
+                            ->maxDate(now())
+                            ->helperText('When this debt started')
+                            ->prefixIcon('heroicon-o-calendar-days')
+                            ->columnSpan(1),
+
                         Forms\Components\DatePicker::make('maturity_date')
-                            ->label('Tanggal Jatuh Tempo')
+                            ->label('Maturity Date')
                             ->required()
-                            ->columnSpan([
-                                'sm' => 1,
-                                'xl' => 1,
-                            ]),
+                            ->native(false)
+                            ->displayFormat('d/m/Y')
+                            ->minDate(now())
+                            ->helperText('When this debt is due')
+                            ->prefixIcon('heroicon-o-calendar-days')
+                            ->columnSpan(1),
                     ])
-                    ->columns([
-                        'sm' => 1,
-                        'xl' => 2,
-                    ]),
-                    
-                Section::make('Status dan Catatan')
+                    ->columns(2),
+
+                Section::make('Status & Notes')
+                    ->description('Current status and additional information')
+                    ->icon('heroicon-o-information-circle')
                     ->schema([
                         Forms\Components\Select::make('status')
-                            ->label('Status')
+                            ->label('Debt Status')
                             ->options([
-                                Debt::STATUS_ACTIVE => 'Aktif',
-                                Debt::STATUS_PAID => 'Lunas',
-                                Debt::STATUS_DEFAULTED => 'Gagal Bayar',
-                                Debt::STATUS_RENEGOTIATED => 'Renegosiasi',
+                                Debt::STATUS_ACTIVE => '🟢 Active',
+                                Debt::STATUS_PAID => '✅ Paid Off',
+                                Debt::STATUS_DEFAULTED => '❌ Defaulted',
+                                Debt::STATUS_RENEGOTIATED => '🔄 Renegotiated',
                             ])
                             ->default(Debt::STATUS_ACTIVE)
                             ->required()
-                            ->columnSpan([
-                                'sm' => 2,
-                                'xl' => 1,
-                            ]),
-                            
+                            ->helperText('Current payment status')
+                            ->prefixIcon('heroicon-o-flag')
+                            ->columnSpan(1),
+
                         Forms\Components\Textarea::make('note')
-                            ->label('Catatan')
-                            ->placeholder('Informasi tambahan mengenai hutang/pinjaman ini')
+                            ->label('Additional Notes')
+                            ->placeholder('Add any additional details about this debt...')
                             ->maxLength(500)
-                            ->columnSpanfull(),
+                            ->helperText('Optional notes (max 500 characters)')
+                            ->rows(3)
+                            ->columnSpanFull(),
                     ])
-                    ->columns([
-                        'sm' => 2,
-                        'xl' => 2,
-                    ]),
+                    ->columns(1)
+                    ->collapsible()
+                    ->collapsed(),
             ]);
     }
 
@@ -147,27 +154,27 @@ class DebtResource extends Resource
                     ->label('Nama')
                     ->searchable()
                     ->sortable(),
-                    
+
                 Tables\Columns\TextColumn::make('amount')
                     ->label('Total')
                     ->money('IDR')
                     ->sortable(),
-                    
+
                 Tables\Columns\TextColumn::make('amount_paid')
                     ->label('Dibayar')
                     ->money('IDR')
                     ->sortable(),
-                    
+
                 Tables\Columns\TextColumn::make('amount_remaining')
                     ->label('Sisa')
                     ->money('IDR')
                     ->sortable(),
-                    
+
                 Tables\Columns\TextColumn::make('paymentPercentage')
                     ->label('Progres')
                     ->formatStateUsing(fn (string $state): string => "{$state}%")
                     ->sortable(),
-                    
+
                 Tables\Columns\BadgeColumn::make('status')
                     ->label('Status')
                     ->colors([
@@ -176,12 +183,12 @@ class DebtResource extends Resource
                         'success' => Debt::STATUS_PAID,
                         'primary' => Debt::STATUS_ACTIVE,
                     ]),
-                    
+
                 Tables\Columns\TextColumn::make('maturity_date')
                     ->label('Jatuh Tempo')
                     ->date('d M Y')
                     ->sortable(),
-                    
+
                 Tables\Columns\IconColumn::make('isOverdue')
                     ->label('Terlambat')
                     ->boolean()
@@ -189,12 +196,12 @@ class DebtResource extends Resource
                     ->falseIcon('heroicon-o-check-circle')
                     ->trueColor('danger')
                     ->falseColor('success'),
-                    
+
                 Tables\Columns\TextColumn::make('interest_rate')
                     ->label('Bunga')
                     ->formatStateUsing(fn ($state) => $state ? "{$state}%" : '-')
                     ->toggleable(),
-                    
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -208,12 +215,12 @@ class DebtResource extends Resource
                         Debt::STATUS_DEFAULTED => 'Gagal Bayar',
                         Debt::STATUS_RENEGOTIATED => 'Renegosiasi',
                     ]),
-                    
+
                 Tables\Filters\Filter::make('overdue')
                     ->label('Terlambat')
                     ->query(fn (Builder $query) => $query->where('status', Debt::STATUS_ACTIVE)
                                                         ->where('maturity_date', '<', now())),
-                                                        
+
                 Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([

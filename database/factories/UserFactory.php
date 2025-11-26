@@ -23,12 +23,26 @@ class UserFactory extends Factory
      */
     public function definition(): array
     {
+        $birthDate = fake()->dateTimeBetween('-60 years', '-18 years');
+
         return [
-            'name' => fake()->name(),
+            'uuid' => (string) Str::uuid(),
+            'username' => fake()->unique()->userName(),
+            'full_name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            'phone_number' => fake()->phoneNumber(),
+            'birth_date' => $birthDate->format('Y-m-d'),
+            'registered_by' => fake()->randomElement(['system', 'admin', 'self']),
+            'registered_by_admin_id' => null,
+            'registration_notes' => fake()->optional()->sentence(),
+            'password_changed_at' => now(),
+            'password_changed_by' => 'system',
+            'password_change_count' => 0,
+            'is_active' => true,
+            'is_locked' => false,
         ];
     }
 
@@ -41,4 +55,40 @@ class UserFactory extends Factory
             'email_verified_at' => null,
         ]);
     }
+
+    /**
+     * Indicate that the user is locked.
+     */
+    public function locked(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_locked' => true,
+            'locked_at' => now(),
+            'locked_by' => 'admin',
+            'locked_reason' => fake()->sentence(),
+        ]);
+    }
+
+    /**
+     * Indicate that the user is inactive.
+     */
+    public function inactive(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_active' => false,
+        ]);
+    }
+
+    /**
+     * Indicate that the user registered via admin.
+     */
+    public function registeredByAdmin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'registered_by' => 'admin',
+            'registered_by_admin_id' => 1,
+            'registration_notes' => fake()->sentence(),
+        ]);
+    }
 }
+
