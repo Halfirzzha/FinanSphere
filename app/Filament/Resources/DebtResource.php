@@ -27,122 +27,114 @@ class DebtResource extends Resource
     {
         return $form
             ->schema([
-                Section::make('Debt Information')
-                    ->description('Basic information about this payable or loan')
-                    ->icon('heroicon-o-document-text')
-                    ->schema([
-                        Forms\Components\TextInput::make('name')
-                            ->label('Debt Name')
-                            ->required()
-                            ->placeholder('e.g., Bank BCA Business Loan')
-                            ->maxLength(100)
-                            ->helperText('Descriptive name for this debt')
-                            ->prefixIcon('heroicon-o-identification')
-                            ->columnSpanFull(),
-                    ])
-                    ->columns(1),
+                Forms\Components\Tabs::make('Debt Management')
+                    ->tabs([
+                        Forms\Components\Tabs\Tab::make('Debt Information')
+                            ->icon('heroicon-o-document-text')
+                            ->schema([
+                                Forms\Components\TextInput::make('name')
+                                    ->label('Debt Name')
+                                    ->required()
+                                    ->placeholder('e.g., Bank BCA Business Loan')
+                                    ->maxLength(100)
+                                    ->helperText('Descriptive name for this debt')
+                                    ->prefixIcon('heroicon-o-identification')
+                                    ->columnSpanFull(),
+                            ]),
 
-                Section::make('Financial Details')
-                    ->description('Amounts, interest, and payment tracking')
-                    ->icon('heroicon-o-banknotes')
-                    ->schema([
-                        Forms\Components\TextInput::make('amount')
-                            ->label('Total Debt Amount')
-                            ->required()
-                            ->numeric()
-                            ->minValue(1)
-                            ->maxValue(999999999999)
-                            ->step(1)
-                            ->inputMode('numeric')
-                            ->prefix('Rp')
-                            ->placeholder('10000000')
-                            ->helperText('Original debt amount (numbers only)')
-                            ->columnSpan(1),
+                        Forms\Components\Tabs\Tab::make('Financial Details')
+                            ->icon('heroicon-o-banknotes')
+                            ->schema([
+                                Forms\Components\TextInput::make('amount')
+                                    ->label('Total Debt Amount')
+                                    ->required()
+                                    ->numeric()
+                                    ->minValue(1)
+                                    ->maxValue(999999999999)
+                                    ->step(1)
+                                    ->inputMode('numeric')
+                                    ->prefix('Rp')
+                                    ->placeholder('10000000')
+                                    ->helperText('Original debt amount (numbers only)')
+                                    ->columnSpan(1),
 
-                        Forms\Components\TextInput::make('amount_paid')
-                            ->label('Amount Paid')
-                            ->required()
-                            ->numeric()
-                            ->minValue(0)
-                            ->maxValue(999999999999)
-                            ->step(1)
-                            ->inputMode('numeric')
-                            ->default(0)
-                            ->prefix('Rp')
-                            ->placeholder('2000000')
-                            ->helperText('Total already paid (numbers only)')
-                            ->columnSpan(1),
+                                Forms\Components\TextInput::make('amount_paid')
+                                    ->label('Amount Paid')
+                                    ->required()
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->maxValue(999999999999)
+                                    ->step(1)
+                                    ->inputMode('numeric')
+                                    ->default(0)
+                                    ->prefix('Rp')
+                                    ->placeholder('2000000')
+                                    ->helperText('Total already paid (numbers only)')
+                                    ->columnSpan(1),
 
-                        Forms\Components\TextInput::make('interest_rate')
-                            ->label('Interest Rate')
-                            ->numeric()
-                            ->minValue(0)
-                            ->maxValue(100)
-                            ->step(0.01)
-                            ->inputMode('decimal')
-                            ->suffix('%')
-                            ->placeholder('5.5')
-                            ->helperText('Annual interest rate (optional)')
-                            ->columnSpan(1),
-                    ])
-                    ->columns(3),
-
-                Section::make('Timeline')
-                    ->description('Start date and maturity date')
-                    ->icon('heroicon-o-calendar')
-                    ->schema([
-                        Forms\Components\DatePicker::make('start_date')
-                            ->label('Start Date')
-                            ->required()
-                            ->default(now())
-                            ->native(false)
-                            ->displayFormat('d/m/Y')
-                            ->maxDate(now())
-                            ->helperText('When this debt started')
-                            ->prefixIcon('heroicon-o-calendar-days')
-                            ->columnSpan(1),
-
-                        Forms\Components\DatePicker::make('maturity_date')
-                            ->label('Maturity Date')
-                            ->required()
-                            ->native(false)
-                            ->displayFormat('d/m/Y')
-                            ->minDate(now())
-                            ->helperText('When this debt is due')
-                            ->prefixIcon('heroicon-o-calendar-days')
-                            ->columnSpan(1),
-                    ])
-                    ->columns(2),
-
-                Section::make('Status & Notes')
-                    ->description('Current status and additional information')
-                    ->icon('heroicon-o-information-circle')
-                    ->schema([
-                        Forms\Components\Select::make('status')
-                            ->label('Debt Status')
-                            ->options([
-                                Debt::STATUS_ACTIVE => '🟢 Active',
-                                Debt::STATUS_PAID => '✅ Paid Off',
-                                Debt::STATUS_DEFAULTED => '❌ Defaulted',
-                                Debt::STATUS_RENEGOTIATED => '🔄 Renegotiated',
+                                Forms\Components\TextInput::make('interest_rate')
+                                    ->label('Interest Rate')
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->maxValue(100)
+                                    ->step(0.01)
+                                    ->inputMode('decimal')
+                                    ->suffix('%')
+                                    ->placeholder('5.5')
+                                    ->helperText('Annual interest rate (optional)')
+                                    ->columnSpan(1),
                             ])
-                            ->default(Debt::STATUS_ACTIVE)
-                            ->required()
-                            ->helperText('Current payment status')
-                            ->prefixIcon('heroicon-o-flag')
-                            ->columnSpan(1),
+                            ->columns(3),
 
-                        Forms\Components\Textarea::make('note')
-                            ->label('Additional Notes')
-                            ->placeholder('Add any additional details about this debt...')
-                            ->maxLength(500)
-                            ->helperText('Optional notes (max 500 characters)')
-                            ->rows(3)
-                            ->columnSpanFull(),
+                        Forms\Components\Tabs\Tab::make('Timeline & Status')
+                            ->icon('heroicon-o-calendar')
+                            ->schema([
+                                Forms\Components\DatePicker::make('start_date')
+                                    ->label('Start Date')
+                                    ->required()
+                                    ->default(now())
+                                    ->native(false)
+                                    ->displayFormat('d/m/Y')
+                                    ->maxDate(now())
+                                    ->helperText('When this debt started')
+                                    ->prefixIcon('heroicon-o-calendar-days')
+                                    ->columnSpan(1),
+
+                                Forms\Components\DatePicker::make('maturity_date')
+                                    ->label('Maturity Date')
+                                    ->required()
+                                    ->native(false)
+                                    ->displayFormat('d/m/Y')
+                                    ->minDate(now())
+                                    ->helperText('When this debt is due')
+                                    ->prefixIcon('heroicon-o-calendar-days')
+                                    ->columnSpan(1),
+
+                                Forms\Components\Select::make('status')
+                                    ->label('Debt Status')
+                                    ->options([
+                                        Debt::STATUS_ACTIVE => '🟢 Active',
+                                        Debt::STATUS_PAID => '✅ Paid Off',
+                                        Debt::STATUS_DEFAULTED => '❌ Defaulted',
+                                        Debt::STATUS_RENEGOTIATED => '🔄 Renegotiated',
+                                    ])
+                                    ->default(Debt::STATUS_ACTIVE)
+                                    ->required()
+                                    ->helperText('Current payment status')
+                                    ->prefixIcon('heroicon-o-flag')
+                                    ->columnSpan(1),
+
+                                Forms\Components\Textarea::make('note')
+                                    ->label('Additional Notes')
+                                    ->placeholder('Add any additional details about this debt...')
+                                    ->maxLength(500)
+                                    ->helperText('Optional notes (max 500 characters)')
+                                    ->rows(3)
+                                    ->columnSpanFull(),
+                            ])
+                            ->columns(3),
                     ])
-                    ->columns(1)
-                    ->collapsible()
-                    ->collapsed(),
+                    ->columnSpanFull(),
             ]);
     }
 

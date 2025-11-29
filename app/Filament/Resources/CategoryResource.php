@@ -35,54 +35,57 @@ class CategoryResource extends Resource
     public static function form(Forms\Form $form): Forms\Form
     {
         return $form->schema([
-            Section::make('Category Information')
-                ->description('Define category name and type')
-                ->icon('heroicon-o-tag')
-                ->schema([
-                    TextInput::make('name')
-                        ->required()
-                        ->unique(ignoreRecord: true)
-                        ->maxLength(255)
-                        ->placeholder('e.g., Food & Beverage, Salary, Entertainment')
-                        ->helperText('Descriptive name for this category')
-                        ->prefixIcon('heroicon-o-bookmark')
-                        ->columnSpan(2),
+            Forms\Components\Tabs::make('Category Details')
+                ->tabs([
+                    Forms\Components\Tabs\Tab::make('Basic Information')
+                        ->icon('heroicon-o-tag')
+                        ->schema([
+                            TextInput::make('name')
+                                ->label('Category Name')
+                                ->required()
+                                ->unique(ignoreRecord: true)
+                                ->maxLength(255)
+                                ->placeholder('e.g., Food & Beverage, Salary, Entertainment')
+                                ->helperText('Descriptive name for this category')
+                                ->prefixIcon('heroicon-o-bookmark')
+                                ->columnSpan(2),
 
-                    Toggle::make('is_expense')
-                        ->label('Expense Category')
-                        ->required()
-                        ->default(true)
-                        ->onIcon('heroicon-m-minus-circle')
-                        ->offIcon('heroicon-m-plus-circle')
-                        ->onColor('danger')
-                        ->offColor('success')
-                        ->inline(false)
-                        ->helperText('Toggle ON for expenses, OFF for income')
-                        ->columnSpan(1),
+                            Toggle::make('is_expense')
+                                ->label('Expense Category')
+                                ->required()
+                                ->default(true)
+                                ->onIcon('heroicon-m-minus-circle')
+                                ->offIcon('heroicon-m-plus-circle')
+                                ->onColor('danger')
+                                ->offColor('success')
+                                ->inline(false)
+                                ->helperText('Toggle ON for expenses, OFF for income')
+                                ->columnSpan(1),
+                        ])
+                        ->columns(3),
+
+                    Forms\Components\Tabs\Tab::make('Category Icon')
+                        ->icon('heroicon-o-photo')
+                        ->schema([
+                            FileUpload::make('image')
+                                ->label('Category Icon')
+                                ->image()
+                                ->imageEditor()
+                                ->imageEditorAspectRatios(['1:1'])
+                                ->imageResizeMode('cover')
+                                ->imageCropAspectRatio('1:1')
+                                ->imageResizeTargetWidth(200)
+                                ->imageResizeTargetHeight(200)
+                                ->directory('categories')
+                                ->visibility('public')
+                                ->maxSize(1024)
+                                ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/webp'])
+                                ->helperText('Square icon recommended. Will be resized to 200x200px (Max 1MB)')
+                                ->imagePreviewHeight(150)
+                                ->columnSpanFull(),
+                        ]),
                 ])
-                ->columns(3),
-
-            Section::make('Category Icon')
-                ->description('Upload a visual icon for this category')
-                ->icon('heroicon-o-photo')
-                ->schema([
-                    FileUpload::make('image')
-                        ->label('Category Icon')
-                        ->image()
-                        ->imageEditor()
-                        ->imageEditorAspectRatios(['1:1'])
-                        ->imageResizeMode('cover')
-                        ->imageCropAspectRatio('1:1')
-                        ->imageResizeTargetWidth(200)
-                        ->imageResizeTargetHeight(200)
-                        ->directory('categories')
-                        ->visibility('public')
-                        ->maxSize(1024)
-                        ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/webp'])
-                        ->helperText('Square icon recommended. Will be resized to 200x200px (Max 1MB)')
-                        ->imagePreviewHeight(150)
-                        ->columnSpanFull(),
-                ]),
+                ->columnSpanFull(),
         ]);
     }
 

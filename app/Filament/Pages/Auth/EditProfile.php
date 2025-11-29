@@ -18,43 +18,39 @@ class EditProfile extends BaseEditProfile
         return $form
             ->schema([
                 Section::make('Profile Picture')
-                    ->description('Your avatar image')
-                    ->aside()
+                    ->description('Upload your profile photo')
                     ->schema([
                         FileUpload::make('avatar')
-                            ->label('')
+                            ->label('Avatar')
                             ->image()
+                            ->avatar()
                             ->imageEditor()
-                            ->imageEditorAspectRatios(['1:1'])
-                            ->imageResizeMode('cover')
-                            ->imageCropAspectRatio('1:1')
-                            ->imageResizeTargetWidth('200')
-                            ->imageResizeTargetHeight('200')
-                            ->maxSize(2048)
+                            ->circleCropper()
                             ->directory('avatars')
                             ->visibility('public')
+                            ->maxSize(2048)
                             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
-                            ->helperText('Max 2MB. JPG/PNG/WebP. Resized to 200x200')
+                            ->helperText('Max 2MB. Recommended: 400x400px')
                             ->imagePreviewHeight('200')
-                            ->avatar()
-                            ->alignCenter(),
-                    ]),
+                            ->alignCenter()
+                            ->columnSpanFull(),
+                    ])
+                    ->compact(),
 
-                Section::make('Account Credentials')
-                    ->description('Your login information')
-                    ->icon('heroicon-o-shield-check')
+                Section::make('Personal Information')
+                    ->description('Update your personal details')
                     ->schema([
+                        TextInput::make('full_name')
+                            ->label('Full Name')
+                            ->required()
+                            ->maxLength(255)
+                            ->columnSpanFull(),
+
                         TextInput::make('username')
                             ->label('Username')
-                            ->required()
-                            ->unique(ignoreRecord: true)
-                            ->minLength(3)
-                            ->maxLength(50)
-                            ->alphaDash()
                             ->disabled()
                             ->dehydrated(false)
-                            ->helperText('Username cannot be changed after registration')
-                            ->prefixIcon('heroicon-o-user-circle')
+                            ->helperText('Username cannot be changed')
                             ->columnSpan(1),
 
                         TextInput::make('email')
@@ -63,24 +59,6 @@ class EditProfile extends BaseEditProfile
                             ->required()
                             ->unique(ignoreRecord: true)
                             ->maxLength(255)
-                            ->placeholder('your.email@example.com')
-                            ->helperText('Your primary email for account recovery')
-                            ->prefixIcon('heroicon-o-envelope')
-                            ->columnSpan(1),
-                    ])
-                    ->columns(2),
-
-                Section::make('Personal Details')
-                    ->description('Your personal information')
-                    ->icon('heroicon-o-user')
-                    ->schema([
-                        TextInput::make('full_name')
-                            ->label('Full Name')
-                            ->required()
-                            ->maxLength(255)
-                            ->placeholder('John Michael Doe')
-                            ->helperText('Your complete legal name')
-                            ->prefixIcon('heroicon-o-identification')
                             ->columnSpan(1),
 
                         TextInput::make('phone_number')
@@ -88,25 +66,19 @@ class EditProfile extends BaseEditProfile
                             ->tel()
                             ->maxLength(20)
                             ->placeholder('+62 812 3456 7890')
-                            ->helperText('Your contact number (optional)')
-                            ->prefixIcon('heroicon-o-phone')
                             ->columnSpan(1),
 
                         DatePicker::make('birth_date')
                             ->label('Birth Date')
                             ->maxDate(now()->subYears(13))
-                            ->displayFormat('d/m/Y')
+                            ->displayFormat('d M Y')
                             ->native(false)
-                            ->placeholder('Select your birth date')
-                            ->helperText('Must be at least 13 years old (optional)')
-                            ->prefixIcon('heroicon-o-cake')
-                            ->columnSpanFull(),
+                            ->columnSpan(1),
                     ])
                     ->columns(2),
 
                 Section::make('Change Password')
-                    ->description('Update your password (leave blank to keep current)')
-                    ->icon('heroicon-o-lock-closed')
+                    ->description('Leave blank to keep your current password')
                     ->schema([
                         TextInput::make('password')
                             ->label('New Password')
@@ -114,9 +86,7 @@ class EditProfile extends BaseEditProfile
                             ->rule(Password::default()->min(8)->mixedCase()->numbers()->symbols())
                             ->dehydrated(fn ($state) => filled($state))
                             ->revealable()
-                            ->placeholder('••••••••')
-                            ->helperText('Min 8 characters: uppercase, lowercase, numbers, symbols')
-                            ->prefixIcon('heroicon-o-key')
+                            ->helperText('Min 8 characters with uppercase, lowercase, numbers & symbols')
                             ->columnSpan(1),
 
                         TextInput::make('passwordConfirmation')
@@ -124,9 +94,6 @@ class EditProfile extends BaseEditProfile
                             ->password()
                             ->same('password')
                             ->revealable()
-                            ->placeholder('••••••••')
-                            ->helperText('Re-enter your new password')
-                            ->prefixIcon('heroicon-o-key')
                             ->dehydrated(false)
                             ->columnSpan(1),
                     ])

@@ -36,13 +36,16 @@ class SecurityHeaders
         $response->headers->set('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=(), usb=()');
 
         // Content-Security-Policy (CSP) - Prevent XSS and data injection attacks
+        // Updated to support Filament v3 requirements
         $csp = [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net",
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-            "font-src 'self' data: https://fonts.gstatic.com",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net blob:",
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.bunny.net",
+            "font-src 'self' data: https://fonts.gstatic.com https://fonts.bunny.net",
             "img-src 'self' data: https: blob:",
             "connect-src 'self'",
+            "media-src 'self' blob: data:",
+            "worker-src 'self' blob:",
             "frame-ancestors 'none'",
             "base-uri 'self'",
             "form-action 'self'",

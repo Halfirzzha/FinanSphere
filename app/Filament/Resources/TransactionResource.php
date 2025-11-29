@@ -36,133 +36,125 @@ class TransactionResource extends Resource
     public static function form(Forms\Form $form): Forms\Form
     {
         return $form->schema([
-            Section::make('Transaction Identification')
-                ->description('Unique identifier and description')
-                ->icon('heroicon-o-identification')
-                ->schema([
-                    TextInput::make('code')
-                        ->label('Transaction Code')
-                        ->required()
-                        ->default(function (): string {
-                            $millis = round(microtime(true) * 1000);
-                            $uniqueId = base_convert(substr($millis, -6) . rand(100, 999), 10, 36);
-                            return "FNTX-" . strtoupper($uniqueId);
-                        })
-                        ->readOnly()
-                        ->maxLength(50)
-                        ->unique(ignorable: fn ($record) => $record)
-                        ->helperText('Auto-generated unique code')
-                        ->prefixIcon('heroicon-o-hashtag')
-                        ->columnSpan(1),
+            Forms\Components\Tabs::make('Transaction Information')
+                ->tabs([
+                    Forms\Components\Tabs\Tab::make('Transaction Info')
+                        ->icon('heroicon-o-identification')
+                        ->schema([
+                            TextInput::make('code')
+                                ->label('Transaction Code')
+                                ->required()
+                                ->default(function (): string {
+                                    $millis = round(microtime(true) * 1000);
+                                    $uniqueId = base_convert(substr($millis, -6) . rand(100, 999), 10, 36);
+                                    return "FNTX-" . strtoupper($uniqueId);
+                                })
+                                ->readOnly()
+                                ->maxLength(50)
+                                ->unique(ignorable: fn ($record) => $record)
+                                ->helperText('Auto-generated unique code')
+                                ->prefixIcon('heroicon-o-hashtag')
+                                ->columnSpan(1),
 
-                    TextInput::make('name')
-                        ->label('Description')
-                        ->required()
-                        ->maxLength(255)
-                        ->placeholder('e.g., Monthly Grocery Shopping')
-                        ->helperText('Brief transaction description')
-                        ->prefixIcon('heroicon-o-document-text')
-                        ->columnSpan(2),
-                ])
-                ->columns(3),
+                            TextInput::make('name')
+                                ->label('Description')
+                                ->required()
+                                ->maxLength(255)
+                                ->placeholder('e.g., Monthly Grocery Shopping')
+                                ->helperText('Brief transaction description')
+                                ->prefixIcon('heroicon-o-document-text')
+                                ->columnSpan(2),
 
-            Section::make('Transaction Details')
-                ->description('Category, date, and payment information')
-                ->icon('heroicon-o-clipboard-document-list')
-                ->schema([
-                    Select::make('category_id')
-                        ->label('Category')
-                        ->relationship('category', 'name')
-                        ->preload()
-                        ->searchable()
-                        ->options(function () {
-                            return Category::query()
-                                ->orderByRaw("FIELD(is_expense, 0, 1)")
-                                ->get()
-                                ->mapWithKeys(function ($category) {
-                                    $type = $category->is_expense ? '💸 Expense' : '💰 Income';
-                                    return [$category->id => "$category->name ($type)"];
-                                });
-                        })
-                        ->required()
-                        ->helperText('Select income or expense category')
-                        ->prefixIcon('heroicon-o-folder')
-                        ->columnSpan(2),
+                            Select::make('category_id')
+                                ->label('Category')
+                                ->relationship('category', 'name')
+                                ->preload()
+                                ->searchable()
+                                ->options(function () {
+                                    return Category::query()
+                                        ->orderByRaw("FIELD(is_expense, 0, 1)")
+                                        ->get()
+                                        ->mapWithKeys(function ($category) {
+                                            $type = $category->is_expense ? '💸 Expense' : '💰 Income';
+                                            return [$category->id => "$category->name ($type)"];
+                                        });
+                                })
+                                ->required()
+                                ->helperText('Select income or expense category')
+                                ->prefixIcon('heroicon-o-folder')
+                                ->columnSpan(2),
 
-                    DatePicker::make('date_transaction')
-                        ->label('Transaction Date')
-                        ->required()
-                        ->default(now())
-                        ->native(false)
-                        ->displayFormat('d/m/Y')
-                        ->maxDate(now())
-                        ->helperText('When this transaction occurred')
-                        ->prefixIcon('heroicon-o-calendar')
-                        ->columnSpan(1),
+                            DatePicker::make('date_transaction')
+                                ->label('Transaction Date')
+                                ->required()
+                                ->default(now())
+                                ->native(false)
+                                ->displayFormat('d/m/Y')
+                                ->maxDate(now())
+                                ->helperText('When this transaction occurred')
+                                ->prefixIcon('heroicon-o-calendar')
+                                ->columnSpan(1),
 
-                    Select::make('payment_method')
-                        ->label('Payment Method')
-                        ->required()
-                        ->options([
-                            'cash' => '💵 Cash',
-                            'credit_card' => '💳 Credit Card',
-                            'bank_transfer' => '🏦 Bank Transfer',
-                            'digital_wallet' => '📱 Digital Wallet',
+                            Select::make('payment_method')
+                                ->label('Payment Method')
+                                ->required()
+                                ->options([
+                                    'cash' => '💵 Cash',
+                                    'credit_card' => '💳 Credit Card',
+                                    'bank_transfer' => '🏦 Bank Transfer',
+                                    'digital_wallet' => '📱 Digital Wallet',
+                                ])
+                                ->helperText('How this was paid')
+                                ->prefixIcon('heroicon-o-credit-card')
+                                ->columnSpan(1),
                         ])
-                        ->helperText('How this was paid')
-                        ->prefixIcon('heroicon-o-credit-card')
-                        ->columnSpan(1),
-                ])
-                ->columns(3),
+                        ->columns(3),
 
-            Section::make('Amount')
-                ->description('Transaction value in IDR')
-                ->icon('heroicon-o-banknotes')
-                ->schema([
-                    TextInput::make('amount')
-                        ->label('Transaction Amount')
-                        ->required()
-                        ->numeric()
-                        ->minValue(1)
-                        ->maxValue(999999999999)
-                        ->step(1)
-                        ->inputMode('numeric')
-                        ->prefix('Rp')
-                        ->placeholder('50000')
-                        ->helperText('Enter amount in Rupiah (numbers only)')
-                        ->columnSpanFull(),
-                ])
-                ->columns(1),
+                    Forms\Components\Tabs\Tab::make('Financial Details')
+                        ->icon('heroicon-o-banknotes')
+                        ->schema([
+                            TextInput::make('amount')
+                                ->label('Transaction Amount')
+                                ->required()
+                                ->numeric()
+                                ->minValue(1)
+                                ->maxValue(999999999999)
+                                ->step(1)
+                                ->inputMode('numeric')
+                                ->prefix('Rp')
+                                ->placeholder('50000')
+                                ->helperText('Enter amount in Rupiah (numbers only)')
+                                ->columnSpanFull(),
+                        ]),
 
-            Section::make('Additional Information')
-                ->description('Notes and attachments (optional)')
-                ->icon('heroicon-o-paper-clip')
-                ->schema([
-                    RichEditor::make('note')
-                        ->label('Transaction Notes')
-                        ->maxLength(500)
-                        ->placeholder('Add any additional details...')
-                        ->helperText('Optional notes about this transaction (max 500 characters)')
-                        ->toolbarButtons([
-                            'bold', 'italic', 'underline', 'bulletList',
-                            'orderedList', 'redo', 'undo'
-                        ])
-                        ->columnSpanFull(),
+                    Forms\Components\Tabs\Tab::make('Additional Info')
+                        ->icon('heroicon-o-paper-clip')
+                        ->schema([
+                            RichEditor::make('note')
+                                ->label('Transaction Notes')
+                                ->maxLength(500)
+                                ->placeholder('Add any additional details...')
+                                ->helperText('Optional notes about this transaction (max 500 characters)')
+                                ->toolbarButtons([
+                                    'bold', 'italic', 'underline', 'bulletList',
+                                    'orderedList', 'redo', 'undo'
+                                ])
+                                ->columnSpanFull(),
 
-                    FileUpload::make('image')
-                        ->label('Receipt/Proof')
-                        ->image()
-                        ->imageEditor()
-                        ->directory('transaction-receipts')
-                        ->visibility('public')
-                        ->maxSize(2048)
-                        ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/jpg', 'image/webp'])
-                        ->helperText('Upload receipt or proof (Max 2MB, JPG/PNG/WebP)')
-                        ->imagePreviewHeight(200)
-                        ->columnSpanFull(),
+                            FileUpload::make('image')
+                                ->label('Receipt/Proof')
+                                ->image()
+                                ->imageEditor()
+                                ->directory('transaction-receipts')
+                                ->visibility('public')
+                                ->maxSize(2048)
+                                ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/jpg', 'image/webp'])
+                                ->helperText('Upload receipt or proof (Max 2MB, JPG/PNG/WebP)')
+                                ->imagePreviewHeight(200)
+                                ->columnSpanFull(),
+                        ]),
                 ])
-                ->collapsible()
-                ->collapsed(),
+                ->columnSpanFull(),
         ]);
     }
 
