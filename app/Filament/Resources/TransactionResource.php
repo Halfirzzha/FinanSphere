@@ -71,12 +71,14 @@ class TransactionResource extends Resource
                                 ->preload()
                                 ->searchable()
                                 ->options(function () {
+                                    // SECURITY FIX: Removed SQL injection risk from orderByRaw
                                     return Category::query()
-                                        ->orderByRaw("FIELD(is_expense, 0, 1)")
+                                        ->orderBy('is_expense', 'asc') // Income first (0), then expense (1)
+                                        ->orderBy('name', 'asc')
                                         ->get()
                                         ->mapWithKeys(function ($category) {
                                             $type = $category->is_expense ? '💸 Expense' : '💰 Income';
-                                            return [$category->id => "$category->name ($type)"];
+                                            return [$category->id => e($category->name) . " ($type)"];  // XSS protection
                                         });
                                 })
                                 ->required()
@@ -124,6 +126,8 @@ class TransactionResource extends Resource
                                 ->prefix('Rp')
                                 ->placeholder('50000')
                                 ->helperText('Enter amount in Rupiah (numbers only)')
+                                ->rule('regex:/^[0-9]+$/') // SECURITY: Only allow pure integers
+                                ->dehydrateStateUsing(fn ($state) => abs((int) $state)) // Sanitize to positive integer
                                 ->columnSpanFull(),
                         ]),
 
@@ -139,6 +143,8 @@ class TransactionResource extends Resource
                                     'bold', 'italic', 'underline', 'bulletList',
                                     'orderedList', 'redo', 'undo'
                                 ])
+                                ->disableToolbarButtons(['codeBlock', 'link']) // SECURITY: Disable risky elements
+                                ->dehydrateStateUsing(fn ($state) => strip_tags($state, '<p><br><strong><em><u><ol><ul><li>')) // XSS protection
                                 ->columnSpanFull(),
 
                             FileUpload::make('image')
@@ -191,10 +197,11 @@ class TransactionResource extends Resource
                         : asset('images/income-default.png')
                 ),
             TextColumn::make('category.name')
-                ->description(fn (Transaction $record): string => $record->name)
+                ->description(fn (Transaction $record): string => e($record->name)) // XSS protection
                 ->label('Transaction')
                 ->searchable(['transactions.name', 'categories.name'])
-                ->sortable(),
+                ->sortable(['categories.name']) // PERFORMANCE: Specify sortable column
+                ->wrap(),
             Tables\Columns\IconColumn::make('category.is_expense')
                 ->label('Type')
                 ->trueIcon('heroicon-m-receipt-refund')
@@ -351,8 +358,19 @@ class TransactionResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
+            ->with(['category:id,name,is_expense,image']) // OPTIMIZATION: Eager load with specific columns
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
+    }
+
+    /**
+     * Get navigation badge count - cached for performance
+     */
+    public static function getNavigationBadge(): ?string
+    {
+        return cache()->remember('transaction_count', 300, function () {
+            return (string) static::getModel()::count();
+        });
     }
 }

@@ -9,9 +9,9 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 
 /**
  * Class Debt
- * 
+ *
  * @package App\Models
- * 
+ *
  * @property int $id
  * @property string $name
  * @property float $amount
@@ -25,7 +25,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
  * @property \Carbon\Carbon|null $deleted_at
- * 
+ *
  * @method static \Illuminate\Database\Eloquent\Builder|Debt active()
  * @method static \Illuminate\Database\Eloquent\Builder|Debt paid()
  * @method static \Illuminate\Database\Eloquent\Builder|Debt overdue()
@@ -64,13 +64,30 @@ class Debt extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'amount' => 'decimal:2',
-        'amount_paid' => 'decimal:2',
-        'amount_remaining' => 'decimal:2',
+        'amount' => 'integer', // FIXED: Use integer for financial calculations
+        'amount_paid' => 'integer',
+        'amount_remaining' => 'integer',
         'interest_rate' => 'decimal:2',
         'start_date' => 'date',
         'maturity_date' => 'date',
     ];
+
+    /**
+     * Validation rules for debts
+     */
+    public static function validationRules(): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:100'],
+            'amount' => ['required', 'integer', 'min:1', 'max:999999999999'],
+            'amount_paid' => ['required', 'integer', 'min:0'],
+            'start_date' => ['required', 'date', 'before_or_equal:today'],
+            'maturity_date' => ['required', 'date', 'after:start_date'],
+            'status' => ['required', 'in:active,paid,defaulted,renegotiated'],
+            'interest_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'note' => ['nullable', 'string', 'max:500'],
+        ];
+    }
 
     /**
      * Atribut yang harus dimutasi menjadi tanggal
@@ -93,7 +110,7 @@ class Debt extends Model
             get: fn () => $this->amount > 0 ? round(($this->amount_paid / $this->amount) * 100, 2) : 0,
         );
     }
-    
+
     /**
      * Accessor untuk mengecek apakah hutang sudah jatuh tempo
      *

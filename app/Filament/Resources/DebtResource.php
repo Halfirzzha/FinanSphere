@@ -12,6 +12,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\DB;
 
 class DebtResource extends Resource
 {
@@ -56,6 +57,8 @@ class DebtResource extends Resource
                                     ->prefix('Rp')
                                     ->placeholder('10000000')
                                     ->helperText('Original debt amount (numbers only)')
+                                    ->rule('regex:/^[0-9]+$/') // SECURITY: Only integers
+                                    ->dehydrateStateUsing(fn ($state) => abs((int) $state))
                                     ->columnSpan(1),
 
                                 Forms\Components\TextInput::make('amount_paid')
@@ -70,6 +73,16 @@ class DebtResource extends Resource
                                     ->prefix('Rp')
                                     ->placeholder('2000000')
                                     ->helperText('Total already paid (numbers only)')
+                                    ->rule('regex:/^[0-9]+$/') // SECURITY: Only integers
+                                    ->dehydrateStateUsing(fn ($state) => abs((int) $state))
+                                    ->rule(function () {
+                                        return function (string $attribute, $value, \Closure $fail) {
+                                            $amount = request()->input('amount');
+                                            if ($amount && $value > $amount) {
+                                                $fail('Amount paid cannot exceed total debt amount.');
+                                            }
+                                        };
+                                    })
                                     ->columnSpan(1),
 
                                 Forms\Components\TextInput::make('interest_rate')
@@ -130,6 +143,7 @@ class DebtResource extends Resource
                                     ->maxLength(500)
                                     ->helperText('Optional notes (max 500 characters)')
                                     ->rows(3)
+                                    ->dehydrateStateUsing(fn ($state) => $state ? e($state) : null) // XSS protection
                                     ->columnSpanFull(),
                             ])
                             ->columns(3),
@@ -249,8 +263,32 @@ class DebtResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
+            ->select([
+                'debts.*',
+                // OPTIMIZATION: Pre-calculate amount_remaining in query
+                DB::raw('(amount - amount_paid) as amount_remaining')
+            ])
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
+    }
+
+    /**
+     * Get navigation badge - show count of active debts
+     */
+    public static function getNavigationBadge(): ?string
+    {
+        return cache()->remember('active_debts_count', 300, function () {
+            return (string) Debt::where('status', Debt::STATUS_ACTIVE)->count();
+        });
+    }
+
+    /**
+     * Get navigation badge color based on overdue status
+     */
+    public static function getNavigationBadgeColor(): ?string
+    {
+        $hasOverdue = Debt::active()->where('maturity_date', '<', now())->exists();
+        return $hasOverdue ? 'danger' : 'success';
     }
 }
