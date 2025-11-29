@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * Class Debt
@@ -48,6 +49,7 @@ class Debt extends Model
      * @var array<int, string>
      */
     protected $fillable = [
+        'user_id',
         'name',
         'amount',
         'amount_paid',
@@ -59,14 +61,15 @@ class Debt extends Model
     ];
 
     /**
-     * Atribut yang harus dikonversi
+     * The attributes that should be cast to native types.
+     * FIXED: Changed to decimal:2 to match migration schema (decimal(12,2))
      *
      * @var array<string, string>
      */
     protected $casts = [
-        'amount' => 'integer', // FIXED: Use integer for financial calculations
-        'amount_paid' => 'integer',
-        'amount_remaining' => 'integer',
+        'amount' => 'decimal:2',
+        'amount_paid' => 'decimal:2',
+        'amount_remaining' => 'decimal:2',
         'interest_rate' => 'decimal:2',
         'start_date' => 'date',
         'maturity_date' => 'date',
@@ -74,18 +77,20 @@ class Debt extends Model
 
     /**
      * Validation rules for debts
+     * FIXED: Changed to numeric with decimal support (was integer)
      */
     public static function validationRules(): array
     {
         return [
             'name' => ['required', 'string', 'max:100'],
-            'amount' => ['required', 'integer', 'min:1', 'max:999999999999'],
-            'amount_paid' => ['required', 'integer', 'min:0'],
+            'amount' => ['required', 'numeric', 'min:0.01', 'max:999999999999.99'],
+            'amount_paid' => ['required', 'numeric', 'min:0', 'max:999999999999.99'],
             'start_date' => ['required', 'date', 'before_or_equal:today'],
             'maturity_date' => ['required', 'date', 'after:start_date'],
             'status' => ['required', 'in:active,paid,defaulted,renegotiated'],
             'interest_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'note' => ['nullable', 'string', 'max:500'],
+            'user_id' => ['required', 'exists:users,id'], // ADDED: user_id validation
         ];
     }
 
@@ -98,6 +103,29 @@ class Debt extends Model
         'start_date',
         'maturity_date',
     ];
+
+    /**
+     * Boot model events for validation.
+     * SECURITY FIX: Prevent amount_paid from exceeding total amount
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Auto-assign user_id on create
+        static::creating(function ($debt) {
+            if (!$debt->user_id && Auth::check()) {
+                $debt->user_id = Auth::id();
+            }
+        });
+
+        // Validate amount_paid <= amount
+        static::saving(function ($debt) {
+            if ($debt->amount_paid > $debt->amount) {
+                throw new \InvalidArgumentException('Amount paid cannot exceed total debt amount');
+            }
+        });
+    }
 
     /**
      * Accessor untuk menghitung persentase pembayaran

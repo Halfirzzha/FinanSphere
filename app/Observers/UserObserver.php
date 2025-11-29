@@ -12,6 +12,13 @@ class UserObserver
      */
     public function created(User $user): void
     {
+        // Auto-assign default 'User' role for new registrations
+        // Only assign if user doesn't have any role yet (prevents overriding manual assignments)
+        if (!$user->hasAnyRole()) {
+            // Use 'User' (capitalized) to match Shield's default role naming
+            $user->assignRole('User');
+        }
+
         // Avoid logging during seeding or testing
         if (app()->runningInConsole() && !app()->runningUnitTests()) {
             return;
@@ -25,6 +32,7 @@ class UserObserver
                 'registered_by_admin_id' => $user->registered_by_admin_id,
                 'username' => $user->username,
                 'email' => $user->email,
+                'assigned_role' => 'User',
             ]
         );
     }

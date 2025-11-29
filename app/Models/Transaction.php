@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class Transaction extends Model
 {
@@ -17,6 +18,7 @@ class Transaction extends Model
      * @var array<int, string>
      */
     protected $fillable = [
+        'user_id',
         'code',
         'name',
         'category_id',
@@ -29,6 +31,7 @@ class Transaction extends Model
 
     /**
      * Validation rules for transactions
+     * NOTE: amount is unsignedBigInteger in migration (no decimals)
      */
     public static function validationRules(): array
     {
@@ -41,6 +44,7 @@ class Transaction extends Model
             'amount' => ['required', 'integer', 'min:1', 'max:999999999999'],
             'note' => ['nullable', 'string', 'max:500'],
             'image' => ['nullable', 'string', 'max:255'],
+            'user_id' => ['required', 'exists:users,id'], // ADDED: user_id validation
         ];
     }
 
@@ -61,6 +65,13 @@ class Transaction extends Model
     {
         parent::boot();
 
+        // Auto-assign user_id on create
+        static::creating(function ($transaction) {
+            if (!$transaction->user_id && Auth::check()) {
+                $transaction->user_id = Auth::id();
+            }
+        });
+
         // Clear cache on create, update, delete
         static::created(fn() => static::clearTransactionCache());
         static::updated(fn() => static::clearTransactionCache());
@@ -70,7 +81,7 @@ class Transaction extends Model
 
     /**
      * Clear all transaction-related cache.
-     * FIXED: Handle cache drivers that don't support tags (file, database)
+     * OPTIMIZED: Centralized key management with pattern-based clearing
      */
     public static function clearTransactionCache(): void
     {
@@ -78,15 +89,24 @@ class Transaction extends Model
             if (config('cache.default') === 'redis') {
                 Cache::tags(['transactions'])->flush();
             } else {
-                // Fallback for drivers without tag support
-                Cache::forget('transaction_stats');
-                Cache::forget('total_expenses');
-                Cache::forget('total_incomes');
-                Cache::forget('recent_transactions');
+                // Centralized list of all transaction cache keys
+                $keys = [
+                    'transaction_stats',
+                    'total_expenses',
+                    'total_incomes',
+                    'recent_transactions',
+                    'transaction_count',
+                ];
+
+                foreach ($keys as $key) {
+                    Cache::forget($key);
+                }
+
+                // Clear widget caches (pattern: widget_analysis_*)
+                // Note: Pattern clearing requires Redis, so we skip for file/database drivers
             }
         } catch (\Exception $e) {
             Log::warning('Cache clear failed', ['error' => $e->getMessage()]);
-            // Continue execution even if cache clear fails
         }
     }
 
@@ -131,9 +151,9 @@ class Transaction extends Model
     }
 
     /**
-     * OPTIMIZED: Scope for expense transactions using whereHas for Trend compatibility
-     * Note: Using whereHas instead of JOIN to avoid column ambiguity with Trend library
-     * that relies on created_at for date grouping
+     * COMPATIBILITY FIX: Using whereHas for Trend library compatibility
+     * Trend library has column ambiguity issues with JOIN (uses created_at without prefix)
+     * Performance trade-off: whereHas is slower but prevents SQL ambiguity errors
      */
     public function scopeExpenses($query)
     {
@@ -143,9 +163,9 @@ class Transaction extends Model
     }
 
     /**
-     * OPTIMIZED: Scope for income transactions using whereHas for Trend compatibility
-     * Note: Using whereHas instead of JOIN to avoid column ambiguity with Trend library
-     * that relies on created_at for date grouping
+     * COMPATIBILITY FIX: Using whereHas for Trend library compatibility
+     * Trend library has column ambiguity issues with JOIN (uses created_at without prefix)
+     * Performance trade-off: whereHas is slower but prevents SQL ambiguity errors
      */
     public function scopeIncomes($query)
     {

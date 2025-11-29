@@ -13,8 +13,13 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Seed roles and permissions first
+        $this->call([
+            RolePermissionSeeder::class,
+        ]);
+
         // Create default admin user with complete information
-        User::create([
+        $admin = User::create([
             'uuid' => (string) Str::uuid(),
             'username' => 'admin',
             'full_name' => 'Halfirzzha & Team IT FinanSphere',
@@ -32,6 +37,9 @@ class DatabaseSeeder extends Seeder
             'is_active' => true,
             'is_locked' => false,
         ]);
+
+        // Assign super_admin role to default admin
+        $admin->assignRole('super_admin');
     }
 }
 

@@ -608,6 +608,73 @@ Role dapat dikelola melalui Filament admin panel:
 -   Assign permissions per role
 -   Visual permission matrix
 
+#### 🤖 Automatic Role Assignment
+
+**User Registration Auto-Assignment:**
+
+FinanSphere secara otomatis memberikan role `User` kepada setiap user baru yang mendaftar. Sistem ini bekerja fully automated tanpa konfigurasi manual.
+
+**Implementation:**
+
+```php
+// UserObserver.php
+public function created(User $user): void
+{
+    // Auto-assign 'User' role untuk registrasi baru
+    if (!$user->hasAnyRole()) {
+        $user->assignRole('User');
+    }
+}
+```
+
+**Default User Permissions:**
+
+Role `User` memiliki permissions terbatas:
+
+✅ **Transactions:** view, create, update, delete (own data only)  
+✅ **Debts:** view, create, update, delete (own data only)  
+✅ **Categories:** view only (read-only)  
+✅ **Dashboard Widgets:** view all widgets  
+✅ **Filter Page:** access date filtering  
+❌ **User Management:** no access  
+❌ **Role Management:** no access
+
+**Row-Level Security:**
+
+User biasa hanya bisa melihat data mereka sendiri:
+
+```php
+// TransactionResource.php
+public static function getEloquentQuery(): Builder
+{
+    $query = parent::getEloquentQuery();
+
+    // Regular users see only their own transactions
+    $user = Auth::user();
+    if ($user && !$user->hasRole('super_admin')) {
+        $query->where('user_id', $user->id);
+    }
+
+    return $query;
+}
+```
+
+**Testing Auto-Assignment:**
+
+```php
+// Create new user
+$newUser = User::create([
+    'username' => 'john',
+    'email' => 'john@example.com',
+    'password' => bcrypt('password'),
+    // ... other fields
+]);
+
+// Role automatically assigned
+echo $newUser->getRoleNames()->first(); // Output: User
+echo $newUser->getAllPermissions()->count(); // Output: 17
+```
+
 ---
 
 ### 🔧 Shield Configuration
@@ -725,36 +792,156 @@ $user->assignRole('finance');
 $user->givePermissionTo('view_reports');
 ```
 
+#### 👨‍💼 Manual Role Management (Super Admin)
+
+**Via Admin Panel:**
+
+Super Admin dapat mengelola role user secara manual melalui User Resource:
+
+1. **Navigate to User Management:**
+
+    - Go to `/secure-management-panel-xyz123/users`
+    - Click on any user to edit
+
+2. **Manage Roles Tab:**
+    - Open the "Roles & Permissions" tab
+    - Select one or multiple roles from dropdown
+    - View real-time permission summary
+    - Save changes
+
+**Features:**
+
+✅ **Multiple Role Assignment** - Assign more than one role per user  
+✅ **Real-time Permission Preview** - See effective permissions instantly  
+✅ **Override Auto-Assignment** - Change default "User" role to any other role  
+✅ **Role Addition** - Add additional roles without removing existing ones  
+✅ **Visual Permission Matrix** - Grouped permissions by resource type  
+✅ **Cumulative Permissions** - Multiple roles = combined permissions
+
+**Example Workflow:**
+
+```bash
+# User registers → Gets "User" role automatically
+# Super Admin can then:
+1. Keep "User" role + add "Finance" role (multiple roles)
+2. Replace "User" role with "Manager" role (single role)
+3. Assign "super_admin" role for full access
+```
+
+**Admin Panel UI:**
+
+```
+┌─────────────────────────────────────────┐
+│ Roles & Permissions Tab                 │
+├─────────────────────────────────────────┤
+│ User Roles: [Select roles ▼]            │
+│   ☑ User                                 │
+│   ☐ super_admin                          │
+│   ☐ Finance                              │
+│                                          │
+│ Current: User                            │
+│ Hint: Select one or more roles          │
+├─────────────────────────────────────────┤
+│ Permission Summary                       │
+│ ┌─────────────┬──────────────┐          │
+│ │ Categories  │ Transactions │          │
+│ │ • view      │ • view       │          │
+│ │ • view_any  │ • create     │          │
+│ └─────────────┴──────────────┘          │
+│ Total Permissions: 17                    │
+└─────────────────────────────────────────┘
+```
+
+**Role Management Table Column:**
+
+User list table now displays roles with badges:
+
+```
+Full Name    | Roles                  | Status
+─────────────┼────────────────────────┼─────────
+John Doe     | [User]                 | Active
+Jane Smith   | [super_admin]          | Active
+Bob Wilson   | [User] [Finance]       | Active
+```
+
 ---
 
 ### 📊 Permission Matrix Example
 
-| Resource         | Super Admin | Admin | Finance | User      |
-| ---------------- | ----------- | ----- | ------- | --------- |
+| Resource         | Super Admin | User (Default) |
+| ---------------- | ----------- | -------------- |
 | **Categories**   |
-| View             | ✅          | ✅    | ✅      | ✅        |
-| Create           | ✅          | ✅    | ❌      | ❌        |
-| Update           | ✅          | ✅    | ❌      | ❌        |
-| Delete           | ✅          | ✅    | ❌      | ❌        |
+| View             | ✅          | ✅             |
+| Create           | ✅          | ❌             |
+| Update           | ✅          | ❌             |
+| Delete           | ✅          | ❌             |
 | **Transactions** |
-| View             | ✅          | ✅    | ✅      | Own Only  |
-| Create           | ✅          | ✅    | ✅      | ✅        |
-| Update           | ✅          | ✅    | ✅      | Own Only  |
-| Delete           | ✅          | ✅    | ❌      | ❌        |
+| View             | ✅ All      | ✅ Own Only    |
+| Create           | ✅          | ✅             |
+| Update           | ✅ All      | ✅ Own Only    |
+| Delete           | ✅ All      | ✅ Own Only    |
 | **Debts**        |
-| View             | ✅          | ✅    | ✅      | ❌        |
-| Create           | ✅          | ✅    | ✅      | ❌        |
-| Update           | ✅          | ✅    | ✅      | ❌        |
-| Delete           | ✅          | ✅    | ❌      | ❌        |
+| View             | ✅ All      | ✅ Own Only    |
+| Create           | ✅          | ✅             |
+| Update           | ✅ All      | ✅ Own Only    |
+| Delete           | ✅ All      | ✅ Own Only    |
 | **Users**        |
-| View             | ✅          | ✅    | ❌      | ❌        |
-| Create           | ✅          | ✅    | ❌      | ❌        |
-| Update           | ✅          | ✅    | ❌      | Self Only |
-| Delete           | ✅          | ❌    | ❌      | ❌        |
+| View             | ✅          | ❌             |
+| Create           | ✅          | ❌             |
+| Update           | ✅          | ❌             |
+| Delete           | ✅          | ❌             |
 | **Widgets**      |
-| Analysis Card    | ✅          | ✅    | ✅      | ❌        |
-| Charts           | ✅          | ✅    | ✅      | ❌        |
-| Debt Table       | ✅          | ✅    | ✅      | ❌        |
+| Analysis Card    | ✅          | ✅             |
+| Charts           | ✅          | ✅             |
+| Debt Table       | ✅          | ✅             |
+| **Pages**        |
+| Filter Date      | ✅          | ✅             |
+
+**Note:** Role `User` otomatis diberikan saat registrasi. Super Admin bypass semua permission checks.
+
+---
+
+### 🎯 Role & Permission Seeder
+
+**Setup Roles & Permissions:**
+
+```bash
+# Run seeder untuk membuat role dan permissions
+php artisan db:seed --class=RolePermissionSeeder
+```
+
+**Seeder Output:**
+
+```
+✅ Roles and permissions seeded successfully!
+📊 Super Admin: 59 permissions
+📊 User: 17 permissions
+```
+
+**Seeder Implementation:**
+
+```php
+// database/seeders/RolePermissionSeeder.php
+public function run(): void
+{
+    // Create super_admin role dengan semua permissions
+    $superAdminRole = Role::firstOrCreate(['name' => 'super_admin']);
+    $superAdminRole->syncPermissions(Permission::all());
+
+    // Create user role dengan limited permissions
+    $userRole = Role::firstOrCreate(['name' => 'User']);
+    $userRole->syncPermissions([
+        'view_category', 'view_any_category',
+        'view_transaction', 'view_any_transaction',
+        'create_transaction', 'update_transaction', 'delete_transaction',
+        'view_debt', 'view_any_debt',
+        'create_debt', 'update_debt', 'delete_debt',
+        'widget_AnalysisCard', 'widget_WidgetIncomeChart',
+        'widget_WidgetExpenseChart', 'widget_DebtTableWidget',
+        'page_FilterDate',
+    ]);
+}
+```
 
 ---
 

@@ -45,7 +45,7 @@ class Category extends Model
 
     /**
      * Clear all category-related cache.
-     * FIXED: Handle cache drivers without tag support
+     * OPTIMIZED: Centralized key management
      */
     public static function clearCategoryCache(): void
     {
@@ -53,9 +53,15 @@ class Category extends Model
             if (config('cache.default') === 'redis') {
                 Cache::tags(['categories'])->flush();
             } else {
-                Cache::forget('all_categories');
-                Cache::forget('expense_categories');
-                Cache::forget('income_categories');
+                $keys = [
+                    'all_categories',
+                    'expense_categories',
+                    'income_categories',
+                ];
+
+                foreach ($keys as $key) {
+                    Cache::forget($key);
+                }
             }
         } catch (\Exception $e) {
             Log::warning('Category cache clear failed', ['error' => $e->getMessage()]);

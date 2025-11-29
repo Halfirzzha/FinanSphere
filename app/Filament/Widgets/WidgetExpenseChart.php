@@ -33,7 +33,8 @@ class WidgetExpenseChart extends ChartWidget
         $cacheKey = "expenses_chart_{$startDate->toDateString()}_{$endDate->toDateString()}";
 
         // Retrieve data from cache or execute query
-        $data = Cache::remember($cacheKey, now()->addMinutes(1), function () use ($startDate, $endDate) {
+        // STANDARDIZED: 5 minutes (300 seconds) cache duration across all widgets
+        $data = Cache::remember($cacheKey, 300, function () use ($startDate, $endDate) {
             return Trend::query(Transaction::expenses())
                 ->between($startDate, $endDate)
                 ->perDay()

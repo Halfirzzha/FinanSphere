@@ -16,6 +16,7 @@ use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\PasswordReset;
+use Spatie\Permission\PermissionRegistrar;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -40,6 +41,9 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(Logout::class, [AuthenticationListener::class, 'handleLogout']);
         Event::listen(Failed::class, [AuthenticationListener::class, 'handleFailed']);
         Event::listen(PasswordReset::class, [AuthenticationListener::class, 'handlePasswordReset']);
+
+        // Cache roles and permissions for better performance
+        app()->make(PermissionRegistrar::class)->cacheKey = 'spatie.permission.cache';
 
         // Force app URL dan HTTPS saat pakai Ngrok atau APP_URL custom
         if (env('APP_ENV') === 'local') {

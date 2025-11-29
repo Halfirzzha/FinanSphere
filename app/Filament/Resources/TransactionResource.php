@@ -225,8 +225,14 @@ class TransactionResource extends Resource
                                     'bold', 'italic', 'underline', 'bulletList',
                                     'orderedList', 'redo', 'undo'
                                 ])
-                                ->disableToolbarButtons(['codeBlock', 'link']) // SECURITY: Disable risky elements
-                                ->dehydrateStateUsing(fn ($state) => strip_tags($state, '<p><br><strong><em><u><ol><ul><li>')) // XSS protection
+                                ->disableToolbarButtons(['codeBlock', 'link'])
+                                ->dehydrateStateUsing(function ($state) {
+                                    if (!$state) return null;
+                                    // Strip tags first
+                                    $clean = strip_tags($state, '<p><br><strong><em><u><ol><ul><li>');
+                                    // SECURITY FIX: Remove all HTML attributes to prevent XSS via onclick, onerror, etc
+                                    return preg_replace('/<([a-z]+)([^>]*)>/i', '<$1>', $clean);
+                                })
                                 ->columnSpanFull(),
 
                             FileUpload::make('image')
@@ -439,11 +445,19 @@ class TransactionResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()
+        $query = parent::getEloquentQuery()
             ->with(['category:id,name,is_expense,image']) // OPTIMIZATION: Eager load with specific columns
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
+
+        // Row-level security: Regular users can only see their own transactions
+        $user = Auth::user();
+        if ($user && !$user->hasRole('super_admin')) {
+            $query->where('user_id', $user->id);
+        }
+
+        return $query;
     }
 
     /**

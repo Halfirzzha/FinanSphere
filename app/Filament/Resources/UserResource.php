@@ -148,9 +148,9 @@ class UserResource extends Resource
                                                 ->disabled()
                                                 ->dehydrated(false)
                                                 ->maxLength(36)
-                                                ->helperText('Unique identifier (auto-generated in UPPERCASE)')
+                                                ->helperText('Unique identifier (system-managed)')
                                                 ->suffixIcon('heroicon-o-finger-print')
-                                                ->default(null),
+                                                ->hidden(fn (string $context): bool => $context === 'create'),
 
                                             // Username
                                             Forms\Components\TextInput::make('username')
@@ -183,8 +183,9 @@ class UserResource extends Resource
                                                     Forms\Components\DateTimePicker::make('email_verified_at')
                                                         ->label('Email Verified At')
                                                         ->displayFormat('d M Y, H:i')
+                                                        ->native(false)
                                                         ->suffixIcon('heroicon-o-check-circle')
-                                                        ->helperText('Leave empty if not verified'),
+                                                        ->helperText('Set verification time or leave empty'),
 
                                                     // Password
                                                     Forms\Components\TextInput::make('password')
@@ -357,16 +358,16 @@ class UserResource extends Resource
                                                 Forms\Components\DateTimePicker::make('locked_at')
                                                     ->label('Locked At')
                                                     ->displayFormat('d M Y, H:i')
-                                                    ->disabled()
-                                                    ->dehydrated(false)
-                                                    ->suffixIcon('heroicon-o-calendar'),
+                                                    ->native(false)
+                                                    ->suffixIcon('heroicon-o-calendar')
+                                                    ->helperText('When account was locked'),
 
                                                 Forms\Components\TextInput::make('locked_by')
                                                     ->label('Locked By')
                                                     ->maxLength(50)
-                                                    ->disabled()
-                                                    ->dehydrated(false)
-                                                    ->placeholder('system|admin_id'),
+                                                    ->placeholder('system|admin_id')
+                                                    ->helperText('Who locked this account'),
+
                                             ])
                                             ->hidden(fn (Forms\Get $get): bool => ! $get('is_locked')),
 
@@ -386,19 +387,15 @@ class UserResource extends Resource
                                                     ->numeric()
                                                     ->default(0)
                                                     ->minValue(0)
-                                                    ->disabled()
-                                                    ->dehydrated(false)
                                                     ->suffixIcon('heroicon-o-exclamation-triangle')
-                                                    ->helperText('Auto-tracked by system'),
+                                                    ->helperText('Reset to 0 to unlock user'),
 
                                                 Forms\Components\Select::make('blocked_by')
                                                     ->label('Blocked By Admin')
                                                     ->relationship('blockedByAdmin', 'full_name')
                                                     ->searchable()
                                                     ->preload()
-                                                    ->disabled()
-                                                    ->dehydrated(false)
-                                                    ->placeholder('No admin'),
+                                                    ->placeholder('Select admin who blocked'),
 
                                                 Forms\Components\DateTimePicker::make('blocked_until')
                                                     ->label('Blocked Until')
@@ -418,26 +415,23 @@ class UserResource extends Resource
                                                 Forms\Components\DateTimePicker::make('password_changed_at')
                                                     ->label('Last Password Change')
                                                     ->displayFormat('d M Y, H:i')
-                                                    ->disabled()
-                                                    ->dehydrated(false)
-                                                    ->helperText('Auto-updated on password change'),
+                                                    ->native(false)
+                                                    ->helperText('Track when password was last changed'),
 
                                                 Forms\Components\TextInput::make('password_changed_by')
                                                     ->label('Changed By')
                                                     ->maxLength(50)
-                                                    ->disabled()
-                                                    ->dehydrated(false)
                                                     ->placeholder('system|admin_id|self')
-                                                    ->helperText('Who changed the password'),
+                                                    ->helperText('Track who changed the password'),
 
                                                 Forms\Components\TextInput::make('password_change_count')
                                                     ->label('Total Changes')
                                                     ->numeric()
                                                     ->default(0)
-                                                    ->disabled()
-                                                    ->dehydrated(false)
+                                                    ->minValue(0)
                                                     ->suffixIcon('heroicon-o-arrow-path')
                                                     ->helperText('Number of password changes'),
+
                                             ]),
                                     ])
                                     ->collapsible()
@@ -553,8 +547,6 @@ class UserResource extends Resource
                                         Forms\Components\TextInput::make('last_login_ip_public')
                                             ->label('Last Public IP')
                                             ->maxLength(45)
-                                            ->disabled()
-                                            ->dehydrated(false)
                                             ->prefixIcon('heroicon-o-globe-alt')
                                             ->placeholder('No login yet')
                                             ->columnSpan(1),
@@ -562,11 +554,10 @@ class UserResource extends Resource
                                         Forms\Components\TextInput::make('last_login_ip_private')
                                             ->label('Last Private IP')
                                             ->maxLength(45)
-                                            ->disabled()
-                                            ->dehydrated(false)
                                             ->prefixIcon('heroicon-o-computer-desktop')
                                             ->placeholder('No login yet')
                                             ->columnSpan(1),
+
                                     ])
                                     ->columns(2)
                                     ->hidden(fn (string $context): bool => $context === 'create'),
@@ -580,35 +571,29 @@ class UserResource extends Resource
                                                 Forms\Components\TextInput::make('last_login_browser')
                                                     ->label('Browser')
                                                     ->maxLength(100)
-                                                    ->disabled()
-                                                    ->dehydrated(false)
                                                     ->prefixIcon('heroicon-o-globe-alt')
                                                     ->placeholder('N/A'),
 
                                                 Forms\Components\TextInput::make('last_login_browser_version')
                                                     ->label('Browser Version')
                                                     ->maxLength(20)
-                                                    ->disabled()
-                                                    ->dehydrated(false)
                                                     ->prefixIcon('heroicon-o-hashtag')
                                                     ->placeholder('N/A'),
 
                                                 Forms\Components\TextInput::make('last_login_platform')
                                                     ->label('Platform / OS')
                                                     ->maxLength(50)
-                                                    ->disabled()
-                                                    ->dehydrated(false)
                                                     ->prefixIcon('heroicon-o-computer-desktop')
                                                     ->placeholder('N/A'),
+
                                             ]),
 
                                         Forms\Components\Textarea::make('last_login_user_agent')
                                             ->label('User Agent String')
                                             ->rows(3)
-                                            ->disabled()
-                                            ->dehydrated(false)
                                             ->placeholder('No user agent data')
                                             ->columnSpanFull(),
+
                                     ])
                                     ->collapsible()
                                     ->collapsed()
@@ -623,16 +608,13 @@ class UserResource extends Resource
                                                 Forms\Components\TextInput::make('current_ip_public')
                                                     ->label('Current Public IP')
                                                     ->maxLength(45)
-                                                    ->disabled()
-                                                    ->dehydrated(false)
                                                     ->prefixIcon('heroicon-o-globe-alt'),
 
                                                 Forms\Components\TextInput::make('current_ip_private')
                                                     ->label('Current Private IP')
                                                     ->maxLength(45)
-                                                    ->disabled()
-                                                    ->dehydrated(false)
                                                     ->prefixIcon('heroicon-o-computer-desktop'),
+
                                             ]),
 
                                         Grid::make(3)
@@ -640,35 +622,186 @@ class UserResource extends Resource
                                                 Forms\Components\TextInput::make('current_browser')
                                                     ->label('Current Browser')
                                                     ->maxLength(100)
-                                                    ->disabled()
-                                                    ->dehydrated(false)
                                                     ->prefixIcon('heroicon-o-globe-alt'),
 
                                                 Forms\Components\TextInput::make('current_browser_version')
                                                     ->label('Browser Version')
                                                     ->maxLength(20)
-                                                    ->disabled()
-                                                    ->dehydrated(false)
                                                     ->prefixIcon('heroicon-o-hashtag'),
 
                                                 Forms\Components\TextInput::make('current_platform')
                                                     ->label('Current Platform')
                                                     ->maxLength(50)
-                                                    ->disabled()
-                                                    ->dehydrated(false)
                                                     ->prefixIcon('heroicon-o-computer-desktop'),
+
                                             ]),
 
                                         Forms\Components\Textarea::make('current_user_agent')
                                             ->label('Current User Agent')
                                             ->rows(3)
-                                            ->disabled()
-                                            ->dehydrated(false)
                                             ->columnSpanFull(),
+
                                     ])
                                     ->collapsible()
                                     ->collapsed()
                                     ->hidden(fn (string $context): bool => $context === 'create'),
+                            ]),
+
+                        // TAB 6: ROLES & PERMISSIONS
+                        Tabs\Tab::make('Roles & Permissions')
+                            ->icon('heroicon-o-shield-check')
+                            ->badge(fn (?User $record = null): string => $record ? (string) $record->roles->count() : '0')
+                            ->badgeColor('warning')
+                            ->schema([
+                                Section::make('Role Management')
+                                    ->description('Assign and manage user roles. Super Admin has full control.')
+                                    ->icon('heroicon-o-user-group')
+                                    ->schema([
+                                        Forms\Components\Select::make('roles')
+                                            ->label('User Roles')
+                                            ->multiple()
+                                            ->relationship('roles', 'name')
+                                            ->preload()
+                                            ->searchable()
+                                            ->native(false)
+                                            ->placeholder('Select one or more roles')
+                                            ->helperText('Select roles to assign to this user. Multiple roles can be assigned.')
+                                            ->prefixIcon('heroicon-o-shield-check')
+                                            ->columnSpanFull()
+                                            ->live()
+                                            ->afterStateUpdated(function ($state, $set) {
+                                                // Auto-update hint when roles change
+                                                $set('roles_count', count($state ?? []));
+                                            })
+                                            ->hint(fn (?User $record = null): string => $record
+                                                ? 'Current: '.$record->roles->pluck('name')->join(', ')
+                                                : 'No roles assigned yet'),
+
+                                        Forms\Components\Placeholder::make('roles_info')
+                                            ->label('Available Roles')
+                                            ->content(function () {
+                                                $roles = \Spatie\Permission\Models\Role::with('permissions')->get();
+                                                $html = '<div class="space-y-2">';
+                                                foreach ($roles as $role) {
+                                                    $permCount = $role->permissions->count();
+                                                    $color = match ($role->name) {
+                                                        'super_admin' => 'text-red-600 font-bold',
+                                                        'User' => 'text-blue-600',
+                                                        default => 'text-gray-600'
+                                                    };
+                                                    $html .= "<div class='flex items-center gap-2'>";
+                                                    $html .= "<span class='$color'>• {$role->name}</span>";
+                                                    $html .= "<span class='text-xs text-gray-500'>({$permCount} permissions)</span>";
+                                                    $html .= '</div>';
+                                                }
+                                                $html .= '</div>';
+
+                                                return new HtmlString($html);
+                                            })
+                                            ->columnSpanFull()
+                                            ->hidden(fn (string $context): bool => $context !== 'create'),
+                                    ]),
+
+                                Section::make('Permission Summary')
+                                    ->description('View permissions inherited from assigned roles')
+                                    ->icon('heroicon-o-key')
+                                    ->schema([
+                                        Forms\Components\Placeholder::make('permissions_summary')
+                                            ->label('Effective Permissions')
+                                            ->content(function (?User $record = null) {
+                                                if (! $record) {
+                                                    return new HtmlString('<span class="text-gray-400">Save user first to see permissions</span>');
+                                                }
+
+                                                $permissions = $record->getAllPermissions();
+
+                                                if ($permissions->isEmpty()) {
+                                                    return new HtmlString('<span class="text-gray-400">No permissions assigned</span>');
+                                                }
+
+                                                // Group permissions by type
+                                                $grouped = $permissions->groupBy(function ($permission) {
+                                                    if (str_contains($permission->name, 'category')) {
+                                                        return 'Categories';
+                                                    }
+                                                    if (str_contains($permission->name, 'transaction')) {
+                                                        return 'Transactions';
+                                                    }
+                                                    if (str_contains($permission->name, 'debt')) {
+                                                        return 'Debts';
+                                                    }
+                                                    if (str_contains($permission->name, 'user')) {
+                                                        return 'Users';
+                                                    }
+                                                    if (str_contains($permission->name, 'role')) {
+                                                        return 'Roles';
+                                                    }
+                                                    if (str_contains($permission->name, 'widget')) {
+                                                        return 'Widgets';
+                                                    }
+                                                    if (str_contains($permission->name, 'page')) {
+                                                        return 'Pages';
+                                                    }
+
+                                                    return 'Other';
+                                                });
+
+                                                $html = '<div class="grid grid-cols-2 gap-4">';
+                                                foreach ($grouped as $group => $perms) {
+                                                    $html .= "<div class='border rounded-lg p-3 bg-gray-50'>";
+                                                    $html .= "<h4 class='font-semibold text-sm mb-2 text-gray-700'>{$group} ({$perms->count()})</h4>";
+                                                    $html .= "<ul class='space-y-1 text-xs text-gray-600'>";
+                                                    foreach ($perms->take(5) as $perm) {
+                                                        $html .= '<li>• '.str_replace('_', ' ', $perm->name).'</li>';
+                                                    }
+                                                    if ($perms->count() > 5) {
+                                                        $html .= "<li class='text-gray-400'>... and ".($perms->count() - 5).' more</li>';
+                                                    }
+                                                    $html .= '</ul></div>';
+                                                }
+                                                $html .= '</div>';
+                                                $html .= "<div class='mt-3 p-2 bg-blue-50 rounded text-sm text-blue-700'>";
+                                                $html .= "Total Permissions: <strong>{$permissions->count()}</strong>";
+                                                $html .= '</div>';
+
+                                                return new HtmlString($html);
+                                            })
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->collapsible()
+                                    ->collapsed(fn (string $context): bool => $context === 'create')
+                                    ->hidden(fn (string $context): bool => $context === 'create'),
+
+                                Section::make('Role Assignment Notes')
+                                    ->description('Important information about role management')
+                                    ->icon('heroicon-o-information-circle')
+                                    ->schema([
+                                        Forms\Components\Placeholder::make('role_notes')
+                                            ->label('')
+                                            ->content(new HtmlString('
+                                                <div class="space-y-2 text-sm">
+                                                    <div class="flex items-start gap-2">
+                                                        <span class="text-blue-600">ℹ️</span>
+                                                        <span><strong>Auto-Assignment:</strong> New users automatically receive the "User" role during self-registration.</span>
+                                                    </div>
+                                                    <div class="flex items-start gap-2">
+                                                        <span class="text-green-600">✅</span>
+                                                        <span><strong>Manual Override:</strong> Super Admins can change, add, or remove roles at any time.</span>
+                                                    </div>
+                                                    <div class="flex items-start gap-2">
+                                                        <span class="text-yellow-600">⚠️</span>
+                                                        <span><strong>Multiple Roles:</strong> Users can have multiple roles. Permissions are cumulative.</span>
+                                                    </div>
+                                                    <div class="flex items-start gap-2">
+                                                        <span class="text-red-600">🔒</span>
+                                                        <span><strong>Super Admin:</strong> The super_admin role bypasses all permission checks and has full system access.</span>
+                                                    </div>
+                                                </div>
+                                            '))
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->collapsible()
+                                    ->collapsed(),
                             ]),
 
                     ])
@@ -737,6 +870,20 @@ class UserResource extends Resource
                     ->default('-')
                     ->badge()
                     ->color('info'),
+
+                // Roles
+                Tables\Columns\TextColumn::make('roles.name')
+                    ->label('Roles')
+                    ->badge()
+                    ->separator(',')
+                    ->color(fn (string $state): string => match ($state) {
+                        'super_admin' => 'danger',
+                        'User' => 'success',
+                        default => 'info',
+                    })
+                    ->icon('heroicon-o-shield-check')
+                    ->searchable()
+                    ->tooltip('Click to view/edit roles'),
 
                 // Account Status
                 Tables\Columns\TextColumn::make('account_status')
@@ -1081,6 +1228,7 @@ class UserResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
+            ->with(['roles', 'permissions']) // Eager load roles and permissions for better performance
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);

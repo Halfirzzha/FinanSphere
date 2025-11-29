@@ -132,15 +132,13 @@ class DebtResource extends Resource
                                     ->label('Total Debt Amount')
                                     ->required()
                                     ->numeric()
-                                    ->minValue(1)
-                                    ->maxValue(999999999999)
-                                    ->step(1)
-                                    ->inputMode('numeric')
+                                    ->minValue(0.01)
+                                    ->maxValue(999999999999.99)
+                                    ->step(0.01)
+                                    ->inputMode('decimal')
                                     ->prefix('Rp')
-                                    ->placeholder('10000000')
-                                    ->helperText('Original debt amount (numbers only)')
-                                    ->rule('regex:/^[0-9]+$/') // SECURITY: Only integers
-                                    ->dehydrateStateUsing(fn ($state) => abs((int) $state))
+                                    ->placeholder('10000000.00')
+                                    ->helperText('Original debt amount (supports decimals)')
                                     ->columnSpan(1),
 
                                 Forms\Components\TextInput::make('amount_paid')
@@ -148,15 +146,13 @@ class DebtResource extends Resource
                                     ->required()
                                     ->numeric()
                                     ->minValue(0)
-                                    ->maxValue(999999999999)
-                                    ->step(1)
-                                    ->inputMode('numeric')
+                                    ->maxValue(999999999999.99)
+                                    ->step(0.01)
+                                    ->inputMode('decimal')
                                     ->default(0)
                                     ->prefix('Rp')
-                                    ->placeholder('2000000')
-                                    ->helperText('Total already paid (numbers only)')
-                                    ->rule('regex:/^[0-9]+$/') // SECURITY: Only integers
-                                    ->dehydrateStateUsing(fn ($state) => abs((int) $state))
+                                    ->placeholder('2000000.00')
+                                    ->helperText('Total already paid (supports decimals)')
                                     ->rule(function () {
                                         return function (string $attribute, $value, \Closure $fail) {
                                             $amount = request()->input('amount');
@@ -225,7 +221,11 @@ class DebtResource extends Resource
                                     ->maxLength(500)
                                     ->helperText('Optional notes (max 500 characters)')
                                     ->rows(3)
-                                    ->dehydrateStateUsing(fn ($state) => $state ? e($state) : null) // XSS protection
+                                    ->dehydrateStateUsing(function ($state) {
+                                        if (!$state) return null;
+                                        // SECURITY FIX: Use strip_tags for XSS protection
+                                        return strip_tags($state);
+                                    })
                                     ->columnSpanFull(),
                             ])
                             ->columns(3),
@@ -344,15 +344,20 @@ class DebtResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()
-            ->select([
-                'debts.*',
-                // OPTIMIZATION: Pre-calculate amount_remaining in query
-                DB::raw('(amount - amount_paid) as amount_remaining')
-            ])
+        $query = parent::getEloquentQuery()
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
+        // OPTIMIZATION: amount_remaining is already a stored computed column in migration
+        // No need for DB::raw() - it's automatically calculated
+
+        // Row-level security: Regular users can only see their own debts
+        $user = Auth::user();
+        if ($user && !$user->hasRole('super_admin')) {
+            $query->where('user_id', $user->id);
+        }
+
+        return $query;
     }
 
     /**
