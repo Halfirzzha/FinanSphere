@@ -7,10 +7,11 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Pages\Dashboard as BaseDashboard;
+use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 
 class FilterDate extends BaseDashboard
 {
-    use BaseDashboard\Concerns\HasFiltersForm;
+    use BaseDashboard\Concerns\HasFiltersForm, HasPageShield;
 
     /**
      * Define the filters form schema.
@@ -28,7 +29,7 @@ class FilterDate extends BaseDashboard
                         ->maxDate(fn (Get $get) => $get('endDate') ?: now())
                         ->required() // Ensure the field is required
                         ->placeholder('Select a start date'), // Add a placeholder for better UX
-                        
+
                     DatePicker::make('endDate')
                         ->label('End Date')
                         ->minDate(fn (Get $get) => $get('startDate') ?: now())

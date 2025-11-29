@@ -9,10 +9,11 @@ use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use App\Models\Transaction;
 use App\Models\Debt;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 
 class AnalysisCard extends BaseWidget
 {
-    use InteractsWithPageFilters;
+    use InteractsWithPageFilters, HasWidgetShield;
 
     /**
      * Retrieve and format the statistics for the widget.

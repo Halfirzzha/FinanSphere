@@ -9,10 +9,11 @@ use Flowframe\Trend\TrendValue;
 use Filament\Widgets\ChartWidget;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Illuminate\Support\Facades\Cache;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 
 class WidgetExpenseChart extends ChartWidget
 {
-    use InteractsWithPageFilters;
+    use InteractsWithPageFilters, HasWidgetShield;
 
     protected static ?string $heading = 'Expenses Chart';
     protected static ?int $sort = 2;

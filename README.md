@@ -449,6 +449,491 @@ SESSION_ENCRYPT=true
 
 ---
 
+## 🔐 Role-Based Access Control (RBAC) dengan Filament Shield
+
+### 🌟 Enterprise-Grade Permission System
+
+FinanSphere mengimplementasikan **Filament Shield** sebagai sistem permission dan role management yang powerful, professional, dan fully automated.
+
+#### 🎯 Core Features
+
+✅ **Automated Permission Generation** - Auto-generate permissions untuk semua Resources, Pages, dan Widgets  
+✅ **Policy-Based Authorization** - Laravel policies untuk granular access control  
+✅ **Super Admin Role** - Bypass semua permission checks  
+✅ **Role Management UI** - Interface admin untuk manage roles dan permissions  
+✅ **Resource-Level Control** - Kontrol CRUD operations per resource  
+✅ **Page & Widget Protection** - Kontrol akses ke custom pages dan widgets  
+✅ **Navigation Security** - Menu items auto-hide berdasarkan permissions
+
+---
+
+### 📦 Shield Components
+
+#### Generated Permissions
+
+Shield secara otomatis membuat permissions untuk:
+
+**Resources (CRUD + Extended):**
+
+```
+view_category, view_any_category, create_category, update_category
+delete_category, delete_any_category, restore_category, restore_any_category
+replicate_category, reorder_category, force_delete_category, force_delete_any_category
+```
+
+**Pages:**
+
+```
+page_FilterDate    # Custom dashboard page dengan date filters
+```
+
+**Widgets:**
+
+```
+widget_AnalysisCard        # Financial analysis stats
+widget_WidgetIncomeChart   # Revenue chart
+widget_WidgetExpenseChart  # Expense chart
+widget_DebtTableWidget     # Active debts table
+```
+
+---
+
+### 🛡️ Security Implementation
+
+#### Resource Protection
+
+Semua Filament Resources dilindungi dengan Shield policies:
+
+```php
+// CategoryResource.php
+public static function canViewAny(): bool
+{
+    $user = Auth::user();
+    return $user && $user->can('view_any_category');
+}
+
+public static function canCreate(): bool
+{
+    $user = Auth::user();
+    return $user && $user->can('create_category');
+}
+
+public static function canEdit(Model $record): bool
+{
+    $user = Auth::user();
+    return $user && $user->can('update_category');
+}
+
+public static function canDelete(Model $record): bool
+{
+    $user = Auth::user();
+    return $user && $user->can('delete_category');
+}
+```
+
+#### Navigation Control
+
+Menu items otomatis tersembunyi jika user tidak punya permission:
+
+```php
+public static function shouldRegisterNavigation(): bool
+{
+    return static::canViewAny();
+}
+```
+
+#### Widget Protection
+
+Widgets menggunakan `HasWidgetShield` trait:
+
+```php
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
+
+class AnalysisCard extends BaseWidget
+{
+    use InteractsWithPageFilters, HasWidgetShield;
+
+    // Widget hanya muncul jika user punya permission widget_AnalysisCard
+}
+```
+
+#### Page Protection
+
+Custom pages menggunakan `HasPageShield` trait:
+
+```php
+use BezhanSalleh\FilamentShield\Traits\HasPageShield;
+
+class FilterDate extends BaseDashboard
+{
+    use BaseDashboard\Concerns\HasFiltersForm, HasPageShield;
+
+    // Page hanya accessible jika user punya permission page_FilterDate
+}
+```
+
+---
+
+### 👥 Role Management
+
+#### Super Admin
+
+Role super_admin bypass semua permission checks:
+
+```php
+// Config: config/filament-shield.php
+'super_admin' => [
+    'enabled' => true,
+    'name' => 'super_admin',
+    'define_via_gate' => false,
+    'intercept_gate' => 'before',
+],
+```
+
+Create super admin:
+
+```bash
+php artisan shield:super-admin
+# Select user ID to promote to super_admin
+```
+
+#### Custom Roles
+
+Role dapat dikelola melalui Filament admin panel:
+
+**Built-in Role Resource:**
+
+-   Path: `/secure-management-panel-xyz123/shield/roles`
+-   Features: Create, edit, delete roles
+-   Assign permissions per role
+-   Visual permission matrix
+
+---
+
+### 🔧 Shield Configuration
+
+#### Key Settings
+
+**Location:** `config/filament-shield.php`
+
+```php
+return [
+    'shield_resource' => [
+        'should_register_navigation' => true,
+        'slug' => 'shield/roles',
+        'navigation_sort' => -1,
+        'navigation_group' => true,
+    ],
+
+    'super_admin' => [
+        'enabled' => true,
+        'name' => 'super_admin',
+    ],
+
+    'permission_prefixes' => [
+        'resource' => [
+            'view', 'view_any', 'create', 'update',
+            'restore', 'restore_any', 'replicate', 'reorder',
+            'delete', 'delete_any', 'force_delete', 'force_delete_any',
+        ],
+        'page' => 'page',
+        'widget' => 'widget',
+    ],
+
+    'entities' => [
+        'pages' => true,
+        'widgets' => true,
+        'resources' => true,
+        'custom_permissions' => false,
+    ],
+];
+```
+
+---
+
+### 🚀 Usage Guide
+
+#### Generate Permissions
+
+Setiap kali ada Resource/Page/Widget baru:
+
+```bash
+# Generate untuk semua entities
+php artisan shield:generate --all
+
+# Generate untuk resource tertentu
+php artisan shield:generate --resource=CategoryResource
+
+# Generate untuk panel tertentu
+php artisan shield:generate --panel=finbrain
+```
+
+Output example:
+
+```
+✓ CategoryPolicy.php created
+✓ 12 permissions generated for Category
+✓ 1 page permission generated
+✓ 4 widget permissions generated
+```
+
+#### Check User Permissions
+
+```php
+// Check specific permission
+if (auth()->user()->can('create_category')) {
+    // User can create categories
+}
+
+// Check role
+if (auth()->user()->hasRole('super_admin')) {
+    // User is super admin
+}
+
+// Check any of multiple permissions
+if (auth()->user()->canAny(['view_category', 'create_category'])) {
+    // User can view OR create
+}
+
+// Check all permissions
+if (auth()->user()->hasAllPermissions(['view_category', 'create_category'])) {
+    // User can view AND create
+}
+```
+
+#### Assign Permissions
+
+```php
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
+
+// Create role
+$role = Role::create(['name' => 'finance']);
+
+// Assign permissions
+$role->givePermissionTo([
+    'view_any_transaction',
+    'view_transaction',
+    'create_transaction',
+    'update_transaction',
+]);
+
+// Assign role to user
+$user->assignRole('finance');
+
+// Direct permission to user (bypass role)
+$user->givePermissionTo('view_reports');
+```
+
+---
+
+### 📊 Permission Matrix Example
+
+| Resource         | Super Admin | Admin | Finance | User      |
+| ---------------- | ----------- | ----- | ------- | --------- |
+| **Categories**   |
+| View             | ✅          | ✅    | ✅      | ✅        |
+| Create           | ✅          | ✅    | ❌      | ❌        |
+| Update           | ✅          | ✅    | ❌      | ❌        |
+| Delete           | ✅          | ✅    | ❌      | ❌        |
+| **Transactions** |
+| View             | ✅          | ✅    | ✅      | Own Only  |
+| Create           | ✅          | ✅    | ✅      | ✅        |
+| Update           | ✅          | ✅    | ✅      | Own Only  |
+| Delete           | ✅          | ✅    | ❌      | ❌        |
+| **Debts**        |
+| View             | ✅          | ✅    | ✅      | ❌        |
+| Create           | ✅          | ✅    | ✅      | ❌        |
+| Update           | ✅          | ✅    | ✅      | ❌        |
+| Delete           | ✅          | ✅    | ❌      | ❌        |
+| **Users**        |
+| View             | ✅          | ✅    | ❌      | ❌        |
+| Create           | ✅          | ✅    | ❌      | ❌        |
+| Update           | ✅          | ✅    | ❌      | Self Only |
+| Delete           | ✅          | ❌    | ❌      | ❌        |
+| **Widgets**      |
+| Analysis Card    | ✅          | ✅    | ✅      | ❌        |
+| Charts           | ✅          | ✅    | ✅      | ❌        |
+| Debt Table       | ✅          | ✅    | ✅      | ❌        |
+
+---
+
+### 🔒 Security Best Practices
+
+#### 1. Principle of Least Privilege
+
+Berikan permission minimal yang dibutuhkan:
+
+```php
+// ❌ DON'T: Give too much
+$role->givePermissionTo(Permission::all());
+
+// ✅ DO: Give only what's needed
+$role->givePermissionTo([
+    'view_any_transaction',
+    'view_transaction',
+    'create_transaction',
+]);
+```
+
+#### 2. Regular Permission Audits
+
+```bash
+# Check user permissions
+php artisan tinker
+> $user = User::find(1);
+> $user->getAllPermissions()->pluck('name');
+> $user->getRoleNames();
+```
+
+#### 3. Monitor Shield Activity
+
+```php
+// Log permission checks
+if (auth()->user()->can('delete_category')) {
+    Log::info('Permission granted', [
+        'user' => auth()->id(),
+        'permission' => 'delete_category',
+        'resource' => $category->id,
+    ]);
+}
+```
+
+#### 4. Protect Sensitive Operations
+
+```php
+// Require additional verification for sensitive actions
+public static function canDelete(Model $record): bool
+{
+    $user = Auth::user();
+
+    // Basic permission check
+    if (!$user->can('delete_category')) {
+        return false;
+    }
+
+    // Additional checks
+    if ($record->transactions()->exists()) {
+        return false; // Cannot delete if has transactions
+    }
+
+    return true;
+}
+```
+
+---
+
+### 🧪 Testing Permissions
+
+```php
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
+
+class PermissionTest extends TestCase
+{
+    public function test_admin_can_create_category()
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $this->assertTrue($admin->can('create_category'));
+    }
+
+    public function test_user_cannot_delete_category()
+    {
+        $user = User::factory()->create();
+        $user->assignRole('user');
+
+        $this->assertFalse($user->can('delete_category'));
+    }
+
+    public function test_super_admin_bypasses_all_checks()
+    {
+        $superAdmin = User::factory()->create();
+        $superAdmin->assignRole('super_admin');
+
+        $this->assertTrue($superAdmin->can('any_permission'));
+    }
+}
+```
+
+---
+
+### 📝 Commands Reference
+
+```bash
+# Generate all permissions
+php artisan shield:generate --all
+
+# Create super admin
+php artisan shield:super-admin
+
+# Publish config
+php artisan vendor:publish --tag=filament-shield-config
+
+# Clear permission cache
+php artisan permission:cache-reset
+
+# Show all permissions
+php artisan permission:show
+```
+
+---
+
+### 🎓 Advanced Usage
+
+#### Custom Permission Logic
+
+```php
+// Add custom logic beyond Shield
+public static function canEdit(Model $record): bool
+{
+    $user = Auth::user();
+
+    // Shield check
+    if (!$user->can('update_transaction')) {
+        return false;
+    }
+
+    // Custom business logic
+    if ($record->status === 'approved') {
+        return $user->hasRole('super_admin'); // Only super admin can edit approved
+    }
+
+    // Ownership check
+    if ($record->user_id !== $user->id) {
+        return $user->hasAnyRole(['admin', 'super_admin']);
+    }
+
+    return true;
+}
+```
+
+#### Row-Level Security
+
+```php
+public static function getEloquentQuery(): Builder
+{
+    $query = parent::getEloquentQuery();
+    $user = Auth::user();
+
+    // Super admin sees all
+    if ($user->hasRole('super_admin')) {
+        return $query;
+    }
+
+    // Finance sees all transactions
+    if ($user->hasRole('finance')) {
+        return $query;
+    }
+
+    // Regular users only see their own
+    return $query->where('user_id', $user->id);
+}
+```
+
+---
+
 ## 🔐 Security Features
 
 ### Implemented Security Measures

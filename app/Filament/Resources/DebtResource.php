@@ -12,7 +12,9 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class DebtResource extends Resource
 {
@@ -23,6 +25,86 @@ class DebtResource extends Resource
     protected static ?string $navigationLabel = 'Payables & Loans'; // Navigation label
 
     protected static ?int $navigationSort = 2;
+
+    /**
+     * Shield: Control navigation visibility based on permission
+     */
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canViewAny();
+    }
+
+    /**
+     * Shield: Check if user can view any records
+     */
+    public static function canViewAny(): bool
+    {
+        $user = Auth::user();
+        return $user && $user->can('view_any_debt');
+    }
+
+    /**
+     * Shield: Check if user can create records
+     */
+    public static function canCreate(): bool
+    {
+        $user = Auth::user();
+        return $user && $user->can('create_debt');
+    }
+
+    /**
+     * Shield: Check if user can edit specific record
+     */
+    public static function canEdit(Model $record): bool
+    {
+        $user = Auth::user();
+        return $user && $user->can('update_debt');
+    }
+
+    /**
+     * Shield: Check if user can view specific record
+     */
+    public static function canView(Model $record): bool
+    {
+        $user = Auth::user();
+        return $user && $user->can('view_debt');
+    }
+
+    /**
+     * Shield: Check if user can delete specific record
+     */
+    public static function canDelete(Model $record): bool
+    {
+        $user = Auth::user();
+        return $user && $user->can('delete_debt');
+    }
+
+    /**
+     * Shield: Check if user can delete any records
+     */
+    public static function canDeleteAny(): bool
+    {
+        $user = Auth::user();
+        return $user && $user->can('delete_any_debt');
+    }
+
+    /**
+     * Shield: Check if user can force delete
+     */
+    public static function canForceDelete(Model $record): bool
+    {
+        $user = Auth::user();
+        return $user && $user->can('force_delete_debt');
+    }
+
+    /**
+     * Shield: Check if user can restore
+     */
+    public static function canRestore(Model $record): bool
+    {
+        $user = Auth::user();
+        return $user && $user->can('restore_debt');
+    }
 
     public static function form(Form $form): Form
     {

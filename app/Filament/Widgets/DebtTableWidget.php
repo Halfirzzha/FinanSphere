@@ -7,11 +7,14 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Database\Eloquent\Builder;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 
 class DebtTableWidget extends BaseWidget
 {
+    use HasWidgetShield;
+
     protected int | string | array $columnSpan = 'full';
-    
+
     protected static ?int $sort = 4;
 
     public function table(Table $table): Table
@@ -25,22 +28,22 @@ class DebtTableWidget extends BaseWidget
                     ->label('Nama')
                     ->searchable()
                     ->sortable(),
-                    
+
                 Tables\Columns\TextColumn::make('amount')
                     ->label('Total')
                     ->money('IDR')
                     ->sortable(),
-                    
+
                 Tables\Columns\TextColumn::make('amount_paid')
                     ->label('Dibayar')
                     ->money('IDR')
                     ->sortable(),
-                    
+
                 Tables\Columns\TextColumn::make('amount_remaining')
                     ->label('Sisa')
                     ->money('IDR')
                     ->sortable(),
-                    
+
                 Tables\Columns\TextColumn::make('paymentPercentage')
                     ->label('Progres')
                     ->formatStateUsing(fn (string $state): string => "{$state}%")
@@ -54,7 +57,7 @@ class DebtTableWidget extends BaseWidget
                     ])
                     ->formatStateUsing(fn (string $state): string => "{$state}%")
                     ->sortable(),
-                    
+
                 Tables\Columns\BadgeColumn::make('status')
                     ->label('Status')
                     ->colors([
@@ -63,12 +66,12 @@ class DebtTableWidget extends BaseWidget
                         'success' => Debt::STATUS_PAID,
                         'primary' => Debt::STATUS_ACTIVE,
                     ]),
-                    
+
                 Tables\Columns\TextColumn::make('maturity_date')
                     ->label('Jatuh Tempo')
                     ->date('d M Y')
                     ->sortable(),
-                    
+
                 Tables\Columns\IconColumn::make('isOverdue')
                     ->label('Terlambat')
                     ->boolean()
@@ -85,7 +88,7 @@ class DebtTableWidget extends BaseWidget
                         Debt::STATUS_DEFAULTED => 'Gagal Bayar',
                         Debt::STATUS_RENEGOTIATED => 'Renegosiasi',
                     ]),
-                    
+
                 Tables\Filters\Filter::make('overdue')
                     ->label('Terlambat')
                     ->query(fn (Builder $query) => $query->where('status', Debt::STATUS_ACTIVE)

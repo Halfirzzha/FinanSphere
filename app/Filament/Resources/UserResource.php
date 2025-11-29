@@ -3,22 +3,22 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
-use App\Filament\Resources\UserResource\RelationManagers;
 use App\Models\User;
 use Filament\Forms;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Split;
+use Filament\Forms\Components\Tabs;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Filament\Forms\Components\Tabs;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Split;
-use Filament\Forms\Components\Placeholder;
-use Illuminate\Support\HtmlString;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\HtmlString;
 
 class UserResource extends Resource
 {
@@ -32,9 +32,97 @@ class UserResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Users';
 
-    protected static ?string $navigationGroup = 'User Management';
+    protected static ?string $navigationGroup = 'Filament Shield';
 
     protected static ?int $navigationSort = 1;
+
+    /**
+     * Shield: Control navigation visibility based on permission
+     */
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canViewAny();
+    }
+
+    /**
+     * Shield: Check if user can view any records
+     */
+    public static function canViewAny(): bool
+    {
+        $user = Auth::user();
+
+        return $user && $user->can('view_any_user');
+    }
+
+    /**
+     * Shield: Check if user can create records
+     */
+    public static function canCreate(): bool
+    {
+        $user = Auth::user();
+
+        return $user && $user->can('create_user');
+    }
+
+    /**
+     * Shield: Check if user can edit specific record
+     */
+    public static function canEdit(Model $record): bool
+    {
+        $user = Auth::user();
+
+        return $user && $user->can('update_user');
+    }
+
+    /**
+     * Shield: Check if user can view specific record
+     */
+    public static function canView(Model $record): bool
+    {
+        $user = Auth::user();
+
+        return $user && $user->can('view_user');
+    }
+
+    /**
+     * Shield: Check if user can delete specific record
+     */
+    public static function canDelete(Model $record): bool
+    {
+        $user = Auth::user();
+
+        return $user && $user->can('delete_user');
+    }
+
+    /**
+     * Shield: Check if user can delete any records
+     */
+    public static function canDeleteAny(): bool
+    {
+        $user = Auth::user();
+
+        return $user && $user->can('delete_any_user');
+    }
+
+    /**
+     * Shield: Check if user can force delete
+     */
+    public static function canForceDelete(Model $record): bool
+    {
+        $user = Auth::user();
+
+        return $user && $user->can('force_delete_user');
+    }
+
+    /**
+     * Shield: Check if user can restore
+     */
+    public static function canRestore(Model $record): bool
+    {
+        $user = Auth::user();
+
+        return $user && $user->can('restore_user');
+    }
 
     public static function form(Form $form): Form
     {
@@ -120,16 +208,14 @@ class UserResource extends Resource
                                         ->schema([
                                             Placeholder::make('total_logins_display')
                                                 ->label('Total Logins')
-                                                ->content(fn (User $record = null): string =>
-                                                    $record ? number_format($record->total_login_count) : '0'
+                                                ->content(fn (?User $record = null): string => $record ? number_format($record->total_login_count) : '0'
                                                 )
                                                 ->extraAttributes(['class' => 'text-2xl font-bold text-primary-600']),
 
                                             Placeholder::make('failed_attempts_display')
                                                 ->label('Failed Attempts')
-                                                ->content(fn (User $record = null): HtmlString|string =>
-                                                    $record ? ($record->failed_login_attempts > 0
-                                                        ? new HtmlString('<span class="text-danger-600 font-bold">' . $record->failed_login_attempts . '</span>')
+                                                ->content(fn (?User $record = null): HtmlString|string => $record ? ($record->failed_login_attempts > 0
+                                                        ? new HtmlString('<span class="text-danger-600 font-bold">'.$record->failed_login_attempts.'</span>')
                                                         : new HtmlString('<span class="text-success-600">0</span>'))
                                                     : '0'
                                                 )
@@ -137,14 +223,12 @@ class UserResource extends Resource
 
                                             Placeholder::make('password_changes_display')
                                                 ->label('Password Changes')
-                                                ->content(fn (User $record = null): string =>
-                                                    $record ? number_format($record->password_change_count) : '0'
+                                                ->content(fn (?User $record = null): string => $record ? number_format($record->password_change_count) : '0'
                                                 ),
 
                                             Placeholder::make('account_age')
                                                 ->label('Account Age')
-                                                ->content(fn (User $record = null): string =>
-                                                    $record?->created_at ? $record->created_at->diffForHumans() : 'New'
+                                                ->content(fn (?User $record = null): string => $record?->created_at ? $record->created_at->diffForHumans() : 'New'
                                                 ),
                                         ])
                                         ->columnSpan(1)
@@ -284,7 +368,7 @@ class UserResource extends Resource
                                                     ->dehydrated(false)
                                                     ->placeholder('system|admin_id'),
                                             ])
-                                            ->hidden(fn (Forms\Get $get): bool => !$get('is_locked')),
+                                            ->hidden(fn (Forms\Get $get): bool => ! $get('is_locked')),
 
                                         Forms\Components\Textarea::make('locked_reason')
                                             ->label('Lock/Block Reason')
@@ -293,7 +377,7 @@ class UserResource extends Resource
                                             ->placeholder('Reason for locking/blocking this account...')
                                             ->helperText('Explain why this account was locked')
                                             ->columnSpanFull()
-                                            ->hidden(fn (Forms\Get $get): bool => !$get('is_locked')),
+                                            ->hidden(fn (Forms\Get $get): bool => ! $get('is_locked')),
 
                                         Grid::make(3)
                                             ->schema([
@@ -363,8 +447,7 @@ class UserResource extends Resource
                         // TAB 4: REGISTRATION INFO
                         Tabs\Tab::make('Registration Info')
                             ->icon('heroicon-o-document-plus')
-                            ->badge(fn (User $record = null): string =>
-                                $record?->registered_by ? strtoupper($record->registered_by) : 'NEW'
+                            ->badge(fn (?User $record = null): string => $record?->registered_by ? strtoupper($record->registered_by) : 'NEW'
                             )
                             ->schema([
                                 Section::make('Registration Details')
@@ -409,24 +492,21 @@ class UserResource extends Resource
                                             ->schema([
                                                 Placeholder::make('created_at')
                                                     ->label('Account Created')
-                                                    ->content(fn (User $record = null): string =>
-                                                        $record?->created_at
-                                                            ? $record->created_at->format('d M Y, H:i') . ' (' . $record->created_at->diffForHumans() . ')'
+                                                    ->content(fn (?User $record = null): string => $record?->created_at
+                                                            ? $record->created_at->format('d M Y, H:i').' ('.$record->created_at->diffForHumans().')'
                                                             : 'Not yet created'
                                                     ),
 
                                                 Placeholder::make('updated_at')
                                                     ->label('Last Updated')
-                                                    ->content(fn (User $record = null): string =>
-                                                        $record?->updated_at
-                                                            ? $record->updated_at->format('d M Y, H:i') . ' (' . $record->updated_at->diffForHumans() . ')'
+                                                    ->content(fn (?User $record = null): string => $record?->updated_at
+                                                            ? $record->updated_at->format('d M Y, H:i').' ('.$record->updated_at->diffForHumans().')'
                                                             : 'Not yet updated'
                                                     ),
 
                                                 Placeholder::make('deleted_at')
                                                     ->label('Deleted At')
-                                                    ->content(fn (User $record = null): HtmlString|string =>
-                                                        $record?->deleted_at
+                                                    ->content(fn (?User $record = null): HtmlString|string => $record?->deleted_at
                                                             ? $record->deleted_at->format('d M Y, H:i')
                                                             : new HtmlString('<span class="text-success-600 font-semibold">Active</span>')
                                                     ),
@@ -438,8 +518,7 @@ class UserResource extends Resource
                         // TAB 5: LOGIN ACTIVITY
                         Tabs\Tab::make('Login Activity')
                             ->icon('heroicon-o-arrow-right-on-rectangle')
-                            ->badge(fn (User $record = null): string =>
-                                $record?->total_login_count ? (string) $record->total_login_count : '0'
+                            ->badge(fn (?User $record = null): string => $record?->total_login_count ? (string) $record->total_login_count : '0'
                             )
                             ->badgeColor('success')
                             ->schema([
@@ -451,25 +530,22 @@ class UserResource extends Resource
                                             ->schema([
                                                 Placeholder::make('first_login_display')
                                                     ->label('First Login')
-                                                    ->content(fn (User $record = null): HtmlString|string =>
-                                                        $record?->first_login_at
+                                                    ->content(fn (?User $record = null): HtmlString|string => $record?->first_login_at
                                                             ? $record->first_login_at->format('d M Y, H:i')
                                                             : new HtmlString('<span class="text-gray-400">Never logged in</span>')
                                                     ),
 
                                                 Placeholder::make('last_login_display')
                                                     ->label('Last Login')
-                                                    ->content(fn (User $record = null): HtmlString|string =>
-                                                        $record?->last_login_at
-                                                            ? $record->last_login_at->format('d M Y, H:i') . ' (' . $record->last_login_at->diffForHumans() . ')'
+                                                    ->content(fn (?User $record = null): HtmlString|string => $record?->last_login_at
+                                                            ? $record->last_login_at->format('d M Y, H:i').' ('.$record->last_login_at->diffForHumans().')'
                                                             : new HtmlString('<span class="text-gray-400">Never logged in</span>')
                                                     ),
 
                                                 Placeholder::make('total_login_display')
                                                     ->label('Total Logins')
-                                                    ->content(fn (User $record = null): HtmlString =>
-                                                        new HtmlString('<span class="text-2xl font-bold text-primary-600">' .
-                                                        ($record ? number_format($record->total_login_count) : '0') .
+                                                    ->content(fn (?User $record = null): HtmlString => new HtmlString('<span class="text-2xl font-bold text-primary-600">'.
+                                                        ($record ? number_format($record->total_login_count) : '0').
                                                         '</span>')
                                                     ),
                                             ]),
@@ -602,7 +678,6 @@ class UserResource extends Resource
             ]);
     }
 
-
     public static function table(Table $table): Table
     {
         return $table
@@ -611,7 +686,7 @@ class UserResource extends Resource
                 Tables\Columns\ImageColumn::make('avatar')
                     ->label('Avatar')
                     ->circular()
-                    ->defaultImageUrl(fn ($record) => 'https://ui-avatars.com/api/?name=' . urlencode($record->full_name) . '&color=7F9CF5&background=EBF4FF')
+                    ->defaultImageUrl(fn ($record) => 'https://ui-avatars.com/api/?name='.urlencode($record->full_name).'&color=7F9CF5&background=EBF4FF')
                     ->size(40),
 
                 // Full Name
@@ -649,9 +724,8 @@ class UserResource extends Resource
                     ->falseIcon('heroicon-o-x-circle')
                     ->trueColor('success')
                     ->falseColor('gray')
-                    ->tooltip(fn ($record): string =>
-                        $record->email_verified_at
-                            ? 'Verified on ' . $record->email_verified_at->format('d M Y')
+                    ->tooltip(fn ($record): string => $record->email_verified_at
+                            ? 'Verified on '.$record->email_verified_at->format('d M Y')
                             : 'Not verified'
                     ),
 
@@ -736,9 +810,8 @@ class UserResource extends Resource
                     ->sortable()
                     ->since()
                     ->toggleable()
-                    ->tooltip(fn ($record): string =>
-                        $record->last_login_at
-                            ? 'IP: ' . ($record->last_login_ip_public ?? 'N/A') . ' | Browser: ' . ($record->last_login_browser ?? 'Unknown')
+                    ->tooltip(fn ($record): string => $record->last_login_at
+                            ? 'IP: '.($record->last_login_ip_public ?? 'N/A').' | Browser: '.($record->last_login_browser ?? 'Unknown')
                             : 'Never logged in'
                     ),
 
@@ -900,13 +973,12 @@ class UserResource extends Resource
                         ->requiresConfirmation()
                         ->action(function ($record) {
                             $record->update([
-                                'is_locked' => !$record->is_locked,
-                                'locked_at' => !$record->is_locked ? now() : null,
-                                'locked_by' => !$record->is_locked ? Auth::id() : null,
+                                'is_locked' => ! $record->is_locked,
+                                'locked_at' => ! $record->is_locked ? now() : null,
+                                'locked_by' => ! $record->is_locked ? Auth::id() : null,
                             ]);
                         })
-                        ->successNotificationTitle(fn ($record): string =>
-                            $record->is_locked ? 'Account locked' : 'Account unlocked'
+                        ->successNotificationTitle(fn ($record): string => $record->is_locked ? 'Account locked' : 'Account unlocked'
                         ),
 
                     // Custom: Activate/Deactivate
@@ -915,9 +987,8 @@ class UserResource extends Resource
                         ->icon(fn ($record): string => $record->is_active ? 'heroicon-o-x-circle' : 'heroicon-o-check-circle')
                         ->color(fn ($record): string => $record->is_active ? 'danger' : 'success')
                         ->requiresConfirmation()
-                        ->action(fn ($record) => $record->update(['is_active' => !$record->is_active]))
-                        ->successNotificationTitle(fn ($record): string =>
-                            $record->is_active ? 'Account activated' : 'Account deactivated'
+                        ->action(fn ($record) => $record->update(['is_active' => ! $record->is_active]))
+                        ->successNotificationTitle(fn ($record): string => $record->is_active ? 'Account activated' : 'Account deactivated'
                         ),
 
                     Tables\Actions\DeleteAction::make()
@@ -929,8 +1000,8 @@ class UserResource extends Resource
                     Tables\Actions\ForceDeleteAction::make()
                         ->requiresConfirmation(),
                 ])
-                ->icon('heroicon-m-ellipsis-horizontal')
-                ->tooltip('Actions'),
+                    ->icon('heroicon-m-ellipsis-horizontal')
+                    ->tooltip('Actions'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -975,8 +1046,8 @@ class UserResource extends Resource
 
                     Tables\Actions\RestoreBulkAction::make(),
                 ])
-                ->label('Actions')
-                ->icon('heroicon-m-ellipsis-horizontal'),
+                    ->label('Actions')
+                    ->icon('heroicon-m-ellipsis-horizontal'),
             ])
             ->emptyStateActions([
                 Tables\Actions\CreateAction::make()

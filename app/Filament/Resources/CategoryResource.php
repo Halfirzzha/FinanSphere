@@ -19,12 +19,67 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 
 class CategoryResource extends Resource
 {
     protected static ?string $model = Category::class;
     protected static ?string $navigationGroup = 'Finance Management'; // Group name
     protected static ?string $navigationIcon = 'heroicon-o-folder';
+
+    /**
+     * Shield: Control navigation visibility based on permission
+     */
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canViewAny();
+    }
+
+    /**
+     * Shield: Check if user can view any records
+     */
+    public static function canViewAny(): bool
+    {
+        $user = Auth::user();
+        return $user && $user->can('view_any_category');
+    }
+
+    /**
+     * Shield: Check if user can create records
+     */
+    public static function canCreate(): bool
+    {
+        $user = Auth::user();
+        return $user && $user->can('create_category');
+    }
+
+    /**
+     * Shield: Check if user can edit specific record
+     */
+    public static function canEdit(Model $record): bool
+    {
+        $user = Auth::user();
+        return $user && $user->can('update_category');
+    }
+
+    /**
+     * Shield: Check if user can delete specific record
+     */
+    public static function canDelete(Model $record): bool
+    {
+        $user = Auth::user();
+        return $user && $user->can('delete_category');
+    }
+
+    /**
+     * Shield: Check if user can delete any records
+     */
+    public static function canDeleteAny(): bool
+    {
+        $user = Auth::user();
+        return $user && $user->can('delete_any_category');
+    }
 
     /**
      * Define form fields for category creation and editing

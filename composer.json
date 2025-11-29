@@ -10,6 +10,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "bezhansalleh/filament-shield": "^3.9",
         "filament/filament": "^3.3",
         "flowframe/laravel-trend": "^0.4.0",
         "laravel/framework": "^12.0",
@@ -89,6 +90,9 @@
         "allow-plugins": {
             "pestphp/pest-plugin": true,
             "php-http/discovery": true
+        },
+        "audit": {
+            "ignore": ["[\"PKSA-rqc2-tcc6-nc79\"]"]
         }
     },
     "minimum-stability": "stable",

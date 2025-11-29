@@ -8,10 +8,11 @@ use Illuminate\Support\Carbon;
 use Flowframe\Trend\TrendValue;
 use Filament\Widgets\ChartWidget;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 
 class WidgetIncomeChart extends ChartWidget
 {
-    use InteractsWithPageFilters;
+    use InteractsWithPageFilters, HasWidgetShield;
 
     /**
      * Widget heading.

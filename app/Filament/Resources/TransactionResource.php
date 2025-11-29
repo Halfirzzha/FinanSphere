@@ -19,6 +19,8 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\RichEditor;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 use App\Filament\Resources\TransactionResource\Pages;
 
 class TransactionResource extends Resource
@@ -26,6 +28,86 @@ class TransactionResource extends Resource
     protected static ?string $model = Transaction::class;
     protected static ?string $navigationGroup = 'Finance Management';
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
+
+    /**
+     * Shield: Control navigation visibility based on permission
+     */
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canViewAny();
+    }
+
+    /**
+     * Shield: Check if user can view any records
+     */
+    public static function canViewAny(): bool
+    {
+        $user = Auth::user();
+        return $user && $user->can('view_any_transaction');
+    }
+
+    /**
+     * Shield: Check if user can create records
+     */
+    public static function canCreate(): bool
+    {
+        $user = Auth::user();
+        return $user && $user->can('create_transaction');
+    }
+
+    /**
+     * Shield: Check if user can edit specific record
+     */
+    public static function canEdit(Model $record): bool
+    {
+        $user = Auth::user();
+        return $user && $user->can('update_transaction');
+    }
+
+    /**
+     * Shield: Check if user can view specific record
+     */
+    public static function canView(Model $record): bool
+    {
+        $user = Auth::user();
+        return $user && $user->can('view_transaction');
+    }
+
+    /**
+     * Shield: Check if user can delete specific record
+     */
+    public static function canDelete(Model $record): bool
+    {
+        $user = Auth::user();
+        return $user && $user->can('delete_transaction');
+    }
+
+    /**
+     * Shield: Check if user can delete any records
+     */
+    public static function canDeleteAny(): bool
+    {
+        $user = Auth::user();
+        return $user && $user->can('delete_any_transaction');
+    }
+
+    /**
+     * Shield: Check if user can force delete
+     */
+    public static function canForceDelete(Model $record): bool
+    {
+        $user = Auth::user();
+        return $user && $user->can('force_delete_transaction');
+    }
+
+    /**
+     * Shield: Check if user can restore
+     */
+    public static function canRestore(Model $record): bool
+    {
+        $user = Auth::user();
+        return $user && $user->can('restore_transaction');
+    }
 
     /**
      * Define form fields for transaction creation and editing
